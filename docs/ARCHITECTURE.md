@@ -54,15 +54,17 @@ One deployable app. Domains are folders with clear ownership, not separate servi
 
 ## Core workflow
 
+**Knowledge-first (current roadmap):**
+
 ```text
-Manual Signal (MVP)
-  → Signal Analysis (LLM + Intelligence)
-  → Content Opportunity + scores
-  → Content Package drafts (LinkedIn, AEO Q&A, …)
-  → Editorial QA score
-  → Human Approval
+Curated knowledge (workspace)
+  → Authority Baseline (human-approved)
+  → Messaging Plan (human-approved)
+  → Manual Signal → Opportunity → Drafts → Editorial → Human Approval
   → Publish (future)
 ```
+
+Do not run content generation until baseline + messaging plan exist.
 
 ## Multi-tenancy
 

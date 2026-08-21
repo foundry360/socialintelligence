@@ -40,8 +40,25 @@ Names may evolve; the separation from `LLMProvider` must not.
 
 ## Ingestion (phased)
 
-**MVP:** seed/manual load of company profile, POVs, personas, terminology.  
-**Later:** secure document upload → chunk → embed → link to entities/topics.
+**Phase 1:** seed tenant + empty workspace; structured tables ready.  
+**Phase 2:** guided structured entry + uploads/URLs/notes → chunk → embed → link to topics/capabilities; grounded chat with citations.  
+**Phase 3–4:** derive Authority Baseline and Messaging Plan from curated knowledge (human-approved).  
+**Later:** continuous content history sync, richer crawls (still curated).
+
+## Knowledge layers
+
+1. **Structured spine** — profile, capabilities, personas, terminology, POVs (system of record for claims).  
+2. **Evidence corpus** — uploads, URLs, notes (proof; ranked by trust).  
+3. **Derived intelligence** — baselines, plans, chat answers (always citable; never silent “truth”).
+
+## Trust ranking (retrieval & baseline)
+
+1. Human-entered POV / terminology  
+2. Approved case studies / delivery artifacts  
+3. Executive-authored content  
+4. Published company articles  
+5. Generic website marketing pages  
+6. External mentions (market signal — not core knowledge)
 
 ## Sensitivity
 

@@ -4,45 +4,41 @@ Multi-tenant **Thought Leadership Intelligence OS** by Foundry360.
 
 First client: **Kona Kai Corp**.
 
-This system identifies market signals, forms tenant-specific points of view, and turns opportunities into authoritative content for LinkedIn, web, AEO, GEO, and sales enablement — with human approval required.
-
-> Not “AI that writes LinkedIn posts.” An intelligence layer that decides what a company should be known for, and how to demonstrate it.
+> Not “AI that writes LinkedIn posts.” Curate company-true knowledge, establish an authority baseline, align messaging, then systematically create authoritative content.
 
 ## Status
 
-**Phase 0 — Foundation.** Documentation, domain model, LLM abstraction, conceptual schema. MVP feature work has not started.
+**Phase 1 — Platform spine** (in progress): Supabase auth/DB, RLS, Kona Kai seed, live Claude provider, workspace shell.
+
+Knowledge-first sequence: see [`docs/BUILD_PLAN.md`](./docs/BUILD_PLAN.md) and [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
 ## Stack
 
 - Next.js (App Router) · React · TypeScript · pnpm
-- Supabase (Auth, Postgres, pgvector)
-- Claude via model-agnostic `LLMProvider` (OpenAI/local stubs)
+- Supabase (Auth, Postgres, pgvector, Storage)
+- Claude via model-agnostic `LLMProvider`
 - Vercel for deployment (when ready)
-
-## Docs
-
-Start at [`docs/README.md`](./docs/README.md). Agent rules: [`AGENTS.md`](./AGENTS.md).
 
 ## Setup
 
 ```bash
 pnpm install
 cp .env.example .env.local
+# Fill Supabase + ANTHROPIC_API_KEY
+# Apply migrations in supabase/migrations via Supabase SQL editor or CLI
 pnpm dev
 ```
 
-Configure Supabase and `ANTHROPIC_API_KEY` before Phase 1 live LLM calls.
+### Supabase
 
-## Repository layout
+1. Create a Supabase project.
+2. Run SQL files in `supabase/migrations/` in order, then `supabase/seed.sql`.
+3. Enable Email auth.
+4. Create a user, then link them to Kona Kai (see seed file comments) or set `BOOTSTRAP_TENANT_SLUG=kona-kai` and sign up with an email you control — first membership auto-links when configured.
 
-```text
-app/           Next.js UI + API
-domains/       Bounded contexts (knowledge, pov, signals, …)
-lib/           intelligence, llm, db, security, workflow
-prompts/       Versioned prompt definitions
-supabase/      Conceptual schema → migrations in Phase 1
-docs/          Architecture & product docs
-```
+## Docs
+
+[`docs/README.md`](./docs/README.md) · [`AGENTS.md`](./AGENTS.md)
 
 ## Remote
 

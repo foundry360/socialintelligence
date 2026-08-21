@@ -40,9 +40,13 @@ Log: login-sensitive admin actions, knowledge ingest, approvals, provider calls 
 4. Do not allow external content to set tool/policy instructions.
 5. Sanitize/limit size of signal bodies sent to models.
 
-### Document ingestion (later)
+### Document ingestion
 
-MIME allowlists, size limits, private storage buckets, optional malware scanning, sensitivity tags.
+- MIME/extension allowlist: PDF, TXT, Markdown
+- Size limit: 10MB
+- Private Storage bucket `knowledge-uploads` (tenant-prefixed paths)
+- Sensitivity tags; confidential excluded from model context
+- Optional malware scanning: later
 
 ## Incident posture
 

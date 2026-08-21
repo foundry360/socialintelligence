@@ -22,11 +22,13 @@ This product is **not** “AI that writes LinkedIn posts.”
 
 It is an AI system that determines what a company should be known for, identifies opportunities to demonstrate that expertise, develops differentiated points of view, and systematically turns those insights into authoritative content for search, social, AEO, and GEO.
 
-First client: **Kona Kai Corp**. Product is designed as **multi-tenant SaaS** from day one.
-
-Canonical question the system answers:
+Canonical question the system answers (after baseline + messaging plan):
 
 > What should this company be talking about right now, why, what is our unique perspective, and what content should we create?
+
+**Delivery sequence (mandatory):** curated knowledge → Authority Baseline → Messaging Plan → content ops. Do not generate content packages before an approved baseline and plan. See `docs/ROADMAP.md` and `docs/BUILD_PLAN.md`.
+
+First client: **Kona Kai Corp**. Product is designed as **multi-tenant SaaS** from day one.
 
 ---
 
@@ -167,6 +169,7 @@ Required docs live in `/docs`. When you change architecture, update:
 ## 12. What not to do
 
 - Do not generate or publish content without human approval (MVP).
+- Do not generate content packages before the tenant has an approved Authority Baseline and Messaging Plan.
 - Do not couple domains to Anthropic/OpenAI SDKs.
 - Do not train or fine-tune on tenant data without an explicit decision.
 - Do not scrape platforms; prefer official APIs and authorized sources.

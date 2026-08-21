@@ -13,7 +13,14 @@ export interface LLMMessage {
 /** Separated prompt channels for injection safety. */
 export interface LLMContextChannels {
   systemInstructions: string;
+  /** Structured profile/POVs/etc. Trusted curated data. */
   tenantKnowledge?: string;
+  /**
+   * Accepted knowledge-base sources (notes, imported URLs).
+   * Trusted as curated evidence — NOT the same as externalUntrusted market signals.
+   */
+  acceptedEvidence?: string;
+  /** Market signals / raw web not yet accepted — untrusted. */
   externalUntrusted?: string;
   userInput?: string;
 }

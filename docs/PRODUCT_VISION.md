@@ -8,9 +8,24 @@ An AI system that decides **what a company should be known for**, finds timely o
 
 Companies need continuous topical authority across LinkedIn, web content, FAQs, sales enablement, and AI answer engines (AEO/GEO). Manual editorial ops cannot keep pace with market signals while staying on-brand and differentiated.
 
-## Primary user question
+## Primary user questions
+
+**Early (authority baseline):**
+
+> What do we actually know and believe, where are we strong or weak, and what must improve before we speak with authority?
+
+**Ongoing (content ops — after baseline + messaging plan):**
 
 > What should we be talking about right now, why, what is our unique perspective, and what content should we create?
+
+## Delivery sequence
+
+1. Curate company knowledge (structured + evidence sources)
+2. Establish an **Authority Baseline** (strengths, weaknesses, gaps)
+3. Produce a **Messaging / market-alignment plan**
+4. Only then run signal → opportunity → draft → human approval
+
+Stage 1 product surface: NotebookLM-style **Knowledge Workspace**.
 
 ## Outcomes
 

@@ -20,9 +20,17 @@ All tenant-owned entities include `tenantId` / `tenant_id` unless noted.
 | `CompanyProfile` | Positioning, summary, differentiators |
 | `Capability` | Services / offerings |
 | `Industry` | Industries served |
-| `Document` | Internal docs / research (metadata + storage ref + optional chunks) |
+| `Document` / `KnowledgeDocument` | Internal docs / research (metadata + storage ref + optional chunks) |
 | `Terminology` | Preferred terms and forbidden/generic replacements |
 | `ContentAsset` | Existing published or archived content |
+| `KnowledgeWorkspace` | NotebookLM-style workspace container (Phase 2) |
+
+## Authority & messaging (Phases 3–4)
+
+| Entity | Description |
+|--------|-------------|
+| `AuthorityBaseline` | Versioned strengths/weaknesses/gaps/POV coverage; human-approved |
+| `MessagingPlan` | Market-alignment plan derived from approved baseline; human-approved |
 
 ## Audience
 

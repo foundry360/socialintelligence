@@ -37,6 +37,7 @@ export default async function WorkspaceOverviewPage() {
     { count: termCount },
     { count: sourceCount },
     { count: acceptedCount },
+    { data: approvedBaseline },
   ] = await Promise.all([
     supabase
       .from("company_profiles")
@@ -89,6 +90,13 @@ export default async function WorkspaceOverviewPage() {
       .eq("tenant_id", ctx.tenantId)
       .eq("evidence_status", "accepted")
       .is("deleted_at", null),
+    supabase
+      .from("authority_baselines")
+      .select("id, version, approved_at")
+      .eq("tenant_id", ctx.tenantId)
+      .eq("status", "approved")
+      .is("deleted_at", null)
+      .maybeSingle(),
   ]);
 
   const profileDone = Boolean(
@@ -155,12 +163,15 @@ export default async function WorkspaceOverviewPage() {
   const evidenceReady = sourcesAccepted > 0;
   const knowledgeReady = spineDone === spineTotal;
   const phase2Ready = knowledgeReady && evidenceReady;
+  const phase3Ready = Boolean(approvedBaseline);
 
   const next = nextAction({
     phase2Ready,
+    phase3Ready,
     knowledgeReady,
     evidenceReady,
     firstIncomplete: spine.find((s) => !s.done)?.label ?? null,
+    baselineVersion: approvedBaseline?.version ?? null,
   });
 
   return (
@@ -191,15 +202,20 @@ export default async function WorkspaceOverviewPage() {
             <span className="text-muted" aria-hidden>
               →
             </span>
-            <SequencePill label="2. Baseline" locked={!phase2Ready} />
+            <SequencePill
+              label="2. Baseline"
+              active={phase2Ready && !phase3Ready}
+              done={phase3Ready}
+              locked={!phase2Ready}
+            />
             <span className="text-muted" aria-hidden>
               →
             </span>
-            <SequencePill label="3. Messaging plan" locked />
+            <SequencePill label="3. Messaging plan" locked={!phase3Ready} />
             <span className="text-muted" aria-hidden>
               →
             </span>
-            <SequencePill label="4. Content ops" locked />
+            <SequencePill label="4. Content ops" locked={!phase3Ready} />
           </ol>
 
           <section className="mt-10 rounded-lg border border-border bg-surface p-5">
@@ -302,16 +318,26 @@ function countLabel(
 
 function nextAction(input: {
   phase2Ready: boolean;
+  phase3Ready: boolean;
   knowledgeReady: boolean;
   evidenceReady: boolean;
   firstIncomplete: string | null;
+  baselineVersion: number | null;
 }): { title: string; body: string; href: string; cta: string } {
+  if (input.phase3Ready) {
+    return {
+      title: `Authority Baseline v${input.baselineVersion ?? 1} approved`,
+      body: "Messaging Plan is the next phase. Content ops unlock after that.",
+      href: "/workspace/baseline",
+      cta: "View baseline",
+    };
+  }
   if (input.phase2Ready) {
     return {
-      title: "Knowledge foundation is ready",
-      body: "Ask grounded questions now. Authority Baseline is the next product phase.",
-      href: "/workspace",
-      cta: "Open projects",
+      title: "Generate your Authority Baseline",
+      body: "Knowledge and evidence are ready. Draft a baseline, review it, and approve v1.",
+      href: "/workspace/baseline",
+      cta: "Open Baseline",
     };
   }
   if (!input.knowledgeReady) {

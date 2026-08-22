@@ -15,14 +15,14 @@ export function WorkspaceShell({
 }) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
-      <header className="z-40 shrink-0 border-b border-border bg-surface/95 backdrop-blur">
+      <header className="z-40 shrink-0 border-b border-[#0A0A0B] bg-[#0A0A0B] text-white backdrop-blur dark:border-border dark:bg-surface/95 dark:text-foreground">
         <div className="flex items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6">
           <div className="flex min-w-0 shrink-0 items-center gap-2">
             <p className="shrink-0 text-xl leading-none tracking-tight sm:text-2xl">
               <span className="font-bold">X</span>
               <span className="font-medium">2</span>
             </p>
-            <span className="shrink-0 text-muted" aria-hidden>
+            <span className="shrink-0 text-white/50 dark:text-muted" aria-hidden>
               |
             </span>
             <p className="truncate text-sm font-semibold tracking-tight sm:text-base">

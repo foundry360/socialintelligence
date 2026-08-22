@@ -351,7 +351,7 @@ function SavedAccordion({
   status?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-background">
+    <div className="overflow-hidden rounded-md border border-border bg-[#F3F8FC] dark:bg-background">
       <button
         type="button"
         onClick={onToggle}
@@ -383,7 +383,7 @@ function SavedAccordion({
         />
       </button>
       {open ? (
-        <div className="border-t border-border px-3 py-3 dark:bg-zinc-800 dark:[&_input]:bg-zinc-800 dark:[&_textarea]:bg-zinc-800 dark:[&_select]:bg-zinc-800">
+        <div className="border-t border-border bg-[#F3F8FC] px-3 py-3 dark:bg-zinc-800 dark:[&_input]:bg-zinc-800 dark:[&_textarea]:bg-zinc-800 dark:[&_select]:bg-zinc-800">
           {children}
         </div>
       ) : null}

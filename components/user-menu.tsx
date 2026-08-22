@@ -134,7 +134,7 @@ export function UserMenu({
 
   return (
     <div ref={rootRef} className="relative flex items-center gap-2">
-      <span className="hidden max-w-[10rem] truncate text-sm text-foreground sm:inline md:max-w-[14rem]">
+      <span className="hidden max-w-[10rem] truncate text-sm text-inherit sm:inline md:max-w-[14rem]">
         {name}
       </span>
       <button
@@ -144,7 +144,7 @@ export function UserMenu({
         aria-expanded={open}
         aria-controls={menuId}
         aria-label="Account menu"
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-subtle text-sm font-medium text-foreground hover:bg-hover"
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 text-sm font-medium text-inherit hover:bg-white/20 dark:border-border dark:bg-subtle dark:text-foreground dark:hover:bg-hover"
       >
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

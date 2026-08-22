@@ -45,6 +45,8 @@ type ThreadMessage = {
   evidence?: Citation[];
 };
 
+export type { ThreadMessage };
+
 function uniqueSources(citations: Citation[]) {
   const order: string[] = [];
   const byId = new Map<
@@ -412,14 +414,26 @@ function ChatComposer({
   );
 }
 
-export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
+export function KnowledgeChat({
+  sources,
+  missionId,
+  missionTitle,
+  missionDescription,
+  initialMessages = [],
+}: {
+  sources: ChatSourceOption[];
+  missionId?: string;
+  missionTitle?: string;
+  missionDescription?: string;
+  initialMessages?: ThreadMessage[];
+}) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(sources.map((s) => s.id)),
   );
   const [question, setQuestion] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ThreadMessage[]>([]);
+  const [messages, setMessages] = useState<ThreadMessage[]>(initialMessages);
   const [typingId, setTypingId] = useState<string | null>(null);
   const [sourcesCollapsed, setSourcesCollapsed] = useState(false);
   const [citationsCollapsed, setCitationsCollapsed] = useState(false);
@@ -496,6 +510,7 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
           question: text,
           sourceIds: [...selectedIds],
           history,
+          missionId,
         }),
       });
       if (!res.ok) {
@@ -544,7 +559,9 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
 
   return (
     <div
-      className={`grid h-full min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden p-4 sm:p-6 xl:items-stretch ${gridCols}`}
+      className={`grid h-full min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden ${
+        missionId ? "px-4 pb-4 pt-0 sm:px-6 sm:pb-6" : "p-4 sm:p-6"
+      } xl:items-stretch ${gridCols}`}
     >
       {/* Column 1 - Sources */}
       <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface xl:h-full">
@@ -564,7 +581,7 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
           <>
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
               <h2 className="text-base font-medium">Sources</h2>
-              <AddSourceButton />
+              <AddSourceButton missionId={missionId} />
             </div>
 
             <div className="flex items-center justify-between gap-2 px-4 py-2 text-xs">
@@ -599,7 +616,7 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
                     market, and expertise.
                   </p>
                 </div>
-                <AddSourceButton variant="pill" />
+                <AddSourceButton variant="pill" missionId={missionId} />
               </div>
             ) : (
               <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
@@ -627,6 +644,7 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
                           title={s.title}
                           sourceType={s.sourceType}
                           url={s.url}
+                          missionId={missionId}
                         />
                         <input
                           type="checkbox"
@@ -659,15 +677,8 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
       {/* Column 2 - Thread + composer */}
       <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface xl:h-full">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
-          <div>
-            <h2 className="text-base font-medium">Chat</h2>
-            {messages.length > 0 ? (
-              <p className="text-xs text-muted">
-                {messages.filter((m) => m.role === "user").length} messages
-              </p>
-            ) : null}
-          </div>
-          {messages.length > 0 ? (
+          <h2 className="text-base font-medium">{missionTitle ?? "Chat"}</h2>
+          {messages.length > 0 && !missionId ? (
             <button
               type="button"
               onClick={clearThread}
@@ -686,11 +697,13 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
                   Social Intelligence
                 </p>
                 <h3 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                  What should we explore?
+                  {missionTitle
+                    ? `Explore ${missionTitle}`
+                    : "What should we explore?"}
                 </h3>
                 <p className="mt-2 text-sm text-muted">
-                  Ask grounded questions across your selected sources. Follow-ups
-                  stay in this thread.
+                  {missionDescription ||
+                    "Ask grounded questions across your selected sources. Follow-ups stay in this thread."}
                 </p>
                 <div className="mt-8 text-left">
                   <ChatComposer

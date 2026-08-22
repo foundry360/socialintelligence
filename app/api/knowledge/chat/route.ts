@@ -14,6 +14,7 @@ import {
 import { clipToSentenceBounds } from "@/lib/knowledge/chunk";
 import { getLLMProvider } from "@/lib/llm";
 import type { LLMMessage } from "@/lib/llm/types";
+import { createClient } from "@/lib/db/server";
 
 const CHAT_SYSTEM = [
   "You are the Knowledge Workspace analyst for a thought leadership OS.",
@@ -64,13 +65,16 @@ export async function POST(request: Request) {
   let question = "";
   let sourceIds: string[] = [];
   let history: HistoryItem[] = [];
+  let missionId = "";
   try {
     const body = (await request.json()) as {
       question?: string;
       sourceIds?: unknown;
       history?: unknown;
+      missionId?: string;
     };
     question = String(body.question ?? "").trim();
+    missionId = String(body.missionId ?? "").trim();
     if (Array.isArray(body.sourceIds)) {
       sourceIds = body.sourceIds
         .map((id) => String(id ?? "").trim())
@@ -127,6 +131,58 @@ export async function POST(request: Request) {
       { answer: "Missing tenant id.", citations: [], evidenceCount: 0 },
       { status: 500 },
     );
+  }
+
+  let missionFocus = "";
+  if (missionId) {
+    const supabase = await createClient();
+    const { data: mission } = await supabase
+      .from("missions")
+      .select("id, title, description")
+      .eq("id", missionId)
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (!mission) {
+      return NextResponse.json(
+        { answer: "Project not found.", citations: [], evidenceCount: 0 },
+        { status: 404 },
+      );
+    }
+
+    missionFocus = [
+      "MISSION FOCUS (stay on this topic while using tenant knowledge and evidence):",
+      `Title: ${mission.title}`,
+      mission.description?.trim()
+        ? `Focus: ${mission.description.trim()}`
+        : "Focus: Use the conversation to explore this topic in depth.",
+    ].join("\n");
+
+    const { data: missionSourceRows } = await supabase
+      .from("mission_sources")
+      .select("source_id")
+      .eq("mission_id", missionId)
+      .eq("tenant_id", tenantId)
+      .in("source_id", sourceIds);
+
+    const allowedIds = new Set(
+      (missionSourceRows ?? []).map((row) => row.source_id),
+    );
+    if (
+      sourceIds.length === 0 ||
+      sourceIds.some((sourceId) => !allowedIds.has(sourceId))
+    ) {
+      return NextResponse.json(
+        {
+          answer:
+            "Select at least one source that belongs to this project before chatting.",
+          citations: [],
+          evidenceCount: 0,
+        },
+        { status: 400 },
+      );
+    }
   }
 
   // Prefer recent user turns so follow-ups still retrieve relevant evidence.
@@ -186,6 +242,9 @@ export async function POST(request: Request) {
   ];
 
   const llm = getLLMProvider("claude");
+  const systemInstructions = missionFocus
+    ? `${CHAT_SYSTEM}\n\n${missionFocus}`
+    : CHAT_SYSTEM;
   try {
     const { data } = await llm.completeStructured<{
       answer: string;
@@ -193,7 +252,7 @@ export async function POST(request: Request) {
     }>(
       {
         channels: {
-          systemInstructions: CHAT_SYSTEM,
+          systemInstructions,
           tenantKnowledge: structured || "(No structured profile yet.)",
           acceptedEvidence: evidenceBlock,
         },
@@ -236,6 +295,41 @@ export async function POST(request: Request) {
 
     const citations =
       indexes.length > 0 ? indexes.map((n) => consulted[n - 1]) : consulted;
+
+    if (missionId) {
+      const supabase = await createClient();
+      const citationPayload = citations.map((c) => ({
+        index: c.index,
+        sourceId: c.sourceId,
+        sourceTitle: c.sourceTitle,
+        sourceUrl: c.sourceUrl,
+        sourceType: c.sourceType,
+        chunkIndex: c.chunkIndex,
+        excerpt: c.excerpt,
+      }));
+
+      await supabase.from("mission_messages").insert([
+        {
+          mission_id: missionId,
+          tenant_id: tenantId,
+          role: "user",
+          content: question,
+        },
+        {
+          mission_id: missionId,
+          tenant_id: tenantId,
+          role: "assistant",
+          content: answer,
+          citations: citationPayload,
+        },
+      ]);
+
+      await supabase
+        .from("missions")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", missionId)
+        .eq("tenant_id", tenantId);
+    }
 
     return NextResponse.json({
       answer,

@@ -11,8 +11,10 @@ import {
 import { useRouter } from "next/navigation";
 import {
   FileText,
+  Library,
   Link2,
   Plus,
+  Search,
   Upload,
   X,
 } from "lucide-react";
@@ -21,8 +23,14 @@ import {
   addKnowledgeUpload,
   addKnowledgeUrl,
 } from "@/app/workspace/actions";
+import {
+  attachSourcesToMission,
+  listLibrarySourcesForMissionAttach,
+  type MissionLibraryPickerData,
+} from "@/app/workspace/missions/actions";
+import { LibrarySourcePickerTree } from "@/components/library-source-picker-tree";
 
-type SourceMode = "upload" | "url" | "note";
+type SourceMode = "upload" | "url" | "note" | "library";
 
 const inputClass =
   "mt-1.5 w-full rounded-lg border border-border bg-input px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-foreground/10";
@@ -53,10 +61,23 @@ const MODES: {
   },
 ];
 
+const LIBRARY_MODE = {
+  id: "library" as const,
+  label: "Library",
+  description: "Add from My Library",
+  icon: Library,
+};
+
+function modeOptions(missionId?: string) {
+  return missionId ? [...MODES, LIBRARY_MODE] : MODES;
+}
+
 export function AddSourceButton({
   variant = "icon",
+  missionId,
 }: {
   variant?: "icon" | "pill";
+  missionId?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -81,12 +102,23 @@ export function AddSourceButton({
           <Plus className="h-4 w-4" aria-hidden />
         </button>
       )}
-      {open ? <AddSourceModal onClose={() => setOpen(false)} /> : null}
+      {open ? (
+        <AddSourceModal
+          onClose={() => setOpen(false)}
+          missionId={missionId}
+        />
+      ) : null}
     </>
   );
 }
 
-function AddSourceModal({ onClose }: { onClose: () => void }) {
+function AddSourceModal({
+  onClose,
+  missionId,
+}: {
+  onClose: () => void;
+  missionId?: string;
+}) {
   const router = useRouter();
   const titleId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,6 +127,18 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [libraryPicker, setLibraryPicker] = useState<MissionLibraryPickerData>({
+    sources: [],
+    catalogs: [],
+  });
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [libraryQuery, setLibraryQuery] = useState("");
+  const [selectedLibraryIds, setSelectedLibraryIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  const modes = modeOptions(missionId);
+  const librarySources = libraryPicker.sources;
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -109,6 +153,43 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
 
+  useEffect(() => {
+    if (mode !== "library" || !missionId) return;
+    let cancelled = false;
+    setLibraryLoading(true);
+    setError(null);
+    listLibrarySourcesForMissionAttach(missionId)
+      .then((data) => {
+        if (!cancelled) setLibraryPicker(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load library.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLibraryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, missionId]);
+
+  const selectableLibraryCount = librarySources.filter(
+    (source) => !source.attached,
+  ).length;
+
+  function toggleLibrarySource(sourceId: string) {
+    const source = librarySources.find((item) => item.id === sourceId);
+    if (source?.attached) return;
+    setSelectedLibraryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(sourceId)) next.delete(sourceId);
+      else next.add(sourceId);
+      return next;
+    });
+  }
+
   function takeFile(next: File | null) {
     setFile(next);
     setError(null);
@@ -119,6 +200,32 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
     setError(null);
     onClose();
     router.refresh();
+  }
+
+  async function linkToMission(sourceId: string) {
+    if (missionId) {
+      await attachSourcesToMission(missionId, [sourceId]);
+    }
+  }
+
+  function onLibrarySubmit() {
+    if (!missionId || selectedLibraryIds.size === 0) return;
+    const sourceIds = [...selectedLibraryIds].filter((sourceId) => {
+      const source = librarySources.find((item) => item.id === sourceId);
+      return source && !source.attached;
+    });
+    if (sourceIds.length === 0) return;
+    startTransition(async () => {
+      try {
+        setError(null);
+        await attachSourcesToMission(missionId, sourceIds);
+        finish();
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to add library sources.",
+        );
+      }
+    });
   }
 
   function onUploadSubmit(event: FormEvent<HTMLFormElement>) {
@@ -134,7 +241,8 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
     startTransition(async () => {
       try {
         setError(null);
-        await addKnowledgeUpload(fd);
+        const sourceId = await addKnowledgeUpload(fd);
+        await linkToMission(sourceId);
         finish();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Upload failed");
@@ -149,7 +257,8 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
     startTransition(async () => {
       try {
         setError(null);
-        await addKnowledgeUrl(fd);
+        const sourceId = await addKnowledgeUrl(fd);
+        await linkToMission(sourceId);
         finish();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Import failed");
@@ -164,7 +273,8 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
     startTransition(async () => {
       try {
         setError(null);
-        await addKnowledgeNote(fd);
+        const sourceId = await addKnowledgeNote(fd);
+        await linkToMission(sourceId);
         finish();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Save failed");
@@ -185,17 +295,25 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
         aria-labelledby={titleId}
         className="flex max-h-[min(90vh,52rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl"
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-6 py-5 sm:px-8">
-          <div>
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-6 py-5 text-left sm:px-8">
+          <div className="min-w-0 flex-1">
             <h2
               id={titleId}
-              className="text-xl font-semibold tracking-tight text-foreground"
+              className="text-left text-xl font-semibold tracking-tight text-foreground"
             >
               Add source
             </h2>
-            <p className="mt-1 text-sm text-muted">
-              Upload a document, import a URL, or paste text. Accepted sources
-              show up in Chat right away.
+            <p className="mt-1 text-left text-sm text-muted">
+              {mode === "library"
+                ? "Choose existing sources from your library to add to this project."
+                : missionId
+                  ? "Upload, import, paste, or pick from your library."
+                  : "Upload a document, import a URL, or paste text."}
+              {mode !== "library" && missionId
+                ? " New sources are saved to your library and added to this project."
+                : mode !== "library" && !missionId
+                  ? " Accepted sources show up in Chat right away."
+                  : null}
             </p>
           </div>
           <button
@@ -212,9 +330,11 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
           <div
             role="tablist"
             aria-label="Source type"
-            className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+            className={`grid grid-cols-1 gap-2 ${
+              modes.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"
+            }`}
           >
-            {MODES.map((item) => {
+            {modes.map((item) => {
               const active = mode === item.id;
               const Icon = item.icon;
               return (
@@ -226,6 +346,7 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
                   onClick={() => {
                     setMode(item.id);
                     setError(null);
+                    if (item.id !== "library") setSelectedLibraryIds(new Set());
                   }}
                   className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
                     active
@@ -261,6 +382,46 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
             <p className="mb-4 rounded-lg border border-warning-border bg-warning-bg px-3 py-2 text-sm text-warning-text">
               {error}
             </p>
+          ) : null}
+
+          {mode === "library" ? (
+            <div className="grid gap-4">
+              <label className="relative block">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+                  aria-hidden
+                />
+                <input
+                  type="search"
+                  value={libraryQuery}
+                  onChange={(event) => setLibraryQuery(event.target.value)}
+                  placeholder="Search library sources"
+                  className="w-full rounded-lg border border-border bg-input py-2.5 pl-9 pr-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-foreground/10"
+                />
+              </label>
+
+              {libraryLoading ? (
+                <p className="py-8 text-center text-sm text-muted">
+                  Loading library…
+                </p>
+              ) : (
+                <LibrarySourcePickerTree
+                  sources={librarySources}
+                  catalogs={libraryPicker.catalogs}
+                  query={libraryQuery}
+                  selectedIds={selectedLibraryIds}
+                  onToggle={toggleLibrarySource}
+                  disabled={pending}
+                />
+              )}
+
+              {selectableLibraryCount > 0 ? (
+                <p className="text-xs text-muted">
+                  {selectedLibraryIds.size} of {selectableLibraryCount} available
+                  source{selectableLibraryCount === 1 ? "" : "s"} selected
+                </p>
+              ) : null}
+            </div>
           ) : null}
 
           {mode === "upload" ? (
@@ -396,24 +557,41 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
           >
             Cancel
           </button>
-          <button
-            type="submit"
-            form="add-source-form"
-            disabled={pending || (mode === "upload" && !file)}
-            className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground disabled:opacity-40"
-          >
-            {pending
-              ? mode === "upload"
-                ? "Uploading…"
-                : mode === "url"
-                  ? "Importing…"
-                  : "Saving…"
-              : mode === "upload"
-                ? "Upload & Extract"
-                : mode === "url"
-                  ? "Import URL"
-                  : "Save source"}
-          </button>
+          {mode === "library" ? (
+            <button
+              type="button"
+              onClick={onLibrarySubmit}
+              disabled={pending || selectedLibraryIds.size === 0}
+              className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground disabled:opacity-40"
+            >
+              {pending
+                ? "Adding…"
+                : selectedLibraryIds.size > 0
+                  ? `Add ${selectedLibraryIds.size} source${
+                      selectedLibraryIds.size === 1 ? "" : "s"
+                    }`
+                  : "Add to project"}
+            </button>
+          ) : (
+            <button
+              type="submit"
+              form="add-source-form"
+              disabled={pending || (mode === "upload" && !file)}
+              className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground disabled:opacity-40"
+            >
+              {pending
+                ? mode === "upload"
+                  ? "Uploading…"
+                  : mode === "url"
+                    ? "Importing…"
+                    : "Saving…"
+                : mode === "upload"
+                  ? "Upload & Extract"
+                  : mode === "url"
+                    ? "Import URL"
+                    : "Save source"}
+            </button>
+          )}
         </div>
       </div>
     </div>

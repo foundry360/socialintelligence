@@ -14,17 +14,22 @@ import {
   removeKnowledgeSource,
   renameKnowledgeSource,
 } from "@/app/workspace/actions";
+import { detachSourceFromMission } from "@/app/workspace/missions/actions";
 
 export function SourceRowActions({
   sourceId,
   title,
   sourceType,
   url,
+  missionId,
+  alwaysVisible = false,
 }: {
   sourceId: string;
   title: string;
   sourceType: string;
   url?: string | null;
+  missionId?: string;
+  alwaysVisible?: boolean;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -58,7 +63,7 @@ export function SourceRowActions({
       return;
     }
     window.open(
-      `/workspace/sources/${sourceId}`,
+      `/workspace/library?source=${sourceId}`,
       "_blank",
       "noopener,noreferrer",
     );
@@ -76,7 +81,11 @@ export function SourceRowActions({
           e.stopPropagation();
           setMenuOpen((open) => !open);
         }}
-        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted opacity-0 transition-opacity group-hover:opacity-100 hover:bg-hover hover:text-foreground focus-visible:opacity-100 data-[open=true]:opacity-100"
+        className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-muted transition-opacity hover:bg-hover hover:text-foreground focus-visible:opacity-100 data-[open=true]:opacity-100 ${
+          alwaysVisible
+            ? "opacity-100"
+            : "opacity-0 group-hover:opacity-100"
+        }`}
         data-open={menuOpen || undefined}
       >
         <MoreVertical className="h-4 w-4" aria-hidden />
@@ -137,6 +146,7 @@ export function SourceRowActions({
         <RemoveSourceModal
           sourceId={sourceId}
           title={title}
+          missionId={missionId}
           onClose={() => setRemoveOpen(false)}
           onRemoved={() => {
             setRemoveOpen(false);
@@ -239,11 +249,13 @@ function RenameSourceModal({
 function RemoveSourceModal({
   sourceId,
   title,
+  missionId,
   onClose,
   onRemoved,
 }: {
   sourceId: string;
   title: string;
+  missionId?: string;
   onClose: () => void;
   onRemoved: () => void;
 }) {
@@ -264,7 +276,11 @@ function RemoveSourceModal({
     startTransition(async () => {
       try {
         setError(null);
-        await removeKnowledgeSource(sourceId);
+        if (missionId) {
+          await detachSourceFromMission(missionId, sourceId);
+        } else {
+          await removeKnowledgeSource(sourceId);
+        }
         onRemoved();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Remove failed");
@@ -287,12 +303,22 @@ function RemoveSourceModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-base font-medium text-foreground">
-          Remove source
+          {missionId ? "Remove from project" : "Remove source"}
         </h2>
         <p className="mt-2 text-sm text-muted">
-          Remove{" "}
-          <span className="font-medium text-foreground">{title}</span> from
-          your knowledge library? This cannot be undone from Chat.
+          {missionId ? (
+            <>
+              Remove{" "}
+              <span className="font-medium text-foreground">{title}</span> from
+              this project? The source stays in your library.
+            </>
+          ) : (
+            <>
+              Remove{" "}
+              <span className="font-medium text-foreground">{title}</span> from
+              your knowledge library? This cannot be undone from Chat.
+            </>
+          )}
         </p>
         <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm text-foreground">
           <input
@@ -301,7 +327,11 @@ function RemoveSourceModal({
             checked={confirmed}
             onChange={(e) => setConfirmed(e.target.checked)}
           />
-          <span>I understand this source will be removed.</span>
+          <span>
+            {missionId
+              ? "I understand this source will be removed from the project."
+              : "I understand this source will be removed."}
+          </span>
         </label>
         {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
         <div className="mt-4 flex justify-end gap-2">
@@ -318,7 +348,7 @@ function RemoveSourceModal({
             disabled={!confirmed || pending}
             className="rounded-full bg-danger px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40"
           >
-            {pending ? "Deleting…" : "Delete"}
+            {pending ? "Removing…" : missionId ? "Remove" : "Delete"}
           </button>
         </div>
       </div>

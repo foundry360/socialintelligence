@@ -40,7 +40,7 @@ export default async function SourceViewPage({
       <WorkspacePageWide>
         <div className="mb-6">
           <Link
-            href="/workspace/chat"
+            href="/workspace"
             className="text-sm text-muted underline underline-offset-2 hover:text-foreground"
           >
             Back to Chat

@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { requireWorkspaceContext } from "@/lib/auth/workspace";
 import { chunkText } from "@/lib/knowledge/chunk";
+import {
+  buildSourceMetadata,
+  buildSourceSummary,
+} from "@/lib/workspace/library";
 
 export async function updateCompanyProfile(formData: FormData) {
   const ctx = await requireWorkspaceContext();
@@ -367,6 +371,8 @@ export async function addKnowledgeNote(formData: FormData) {
       sensitivity,
       evidence_status,
       created_by: ctx.user.id,
+      summary: buildSourceSummary(body),
+      metadata: buildSourceMetadata(body, { source_kind: "note" }),
     })
     .select("id")
     .single();
@@ -378,6 +384,7 @@ export async function addKnowledgeNote(formData: FormData) {
   revalidatePath("/workspace/sources");
   revalidatePath("/workspace/chat");
   revalidatePath("/workspace/library");
+  return data.id;
 }
 
 export async function addKnowledgeUrl(formData: FormData) {
@@ -403,6 +410,12 @@ export async function addKnowledgeUrl(formData: FormData) {
       sensitivity,
       evidence_status,
       created_by: ctx.user.id,
+      summary: buildSourceSummary(fetched.text),
+      metadata: buildSourceMetadata(fetched.text, {
+        source_kind: "url",
+        original_url: rawUrl,
+        final_url: fetched.finalUrl,
+      }),
     })
     .select("id")
     .single();
@@ -413,6 +426,8 @@ export async function addKnowledgeUrl(formData: FormData) {
   }
   revalidatePath("/workspace/sources");
   revalidatePath("/workspace/chat");
+  revalidatePath("/workspace/library");
+  return data.id;
 }
 
 function safeStorageFilename(name: string): string {
@@ -452,6 +467,12 @@ export async function addKnowledgeUpload(formData: FormData) {
       original_filename: extracted.originalFilename,
       mime_type: extracted.mimeType,
       created_by: ctx.user.id,
+      summary: buildSourceSummary(extracted.text),
+      metadata: buildSourceMetadata(extracted.text, {
+        source_kind: "upload",
+        original_filename: extracted.originalFilename,
+        mime_type: extracted.mimeType,
+      }),
     })
     .select("id")
     .single();
@@ -493,6 +514,7 @@ export async function addKnowledgeUpload(formData: FormData) {
 
   revalidatePath("/workspace/sources");
   revalidatePath("/workspace/chat");
+  return data.id;
 }
 
 /** Re-fetch an existing URL source and refresh chunks. */

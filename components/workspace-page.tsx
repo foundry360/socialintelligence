@@ -30,3 +30,12 @@ export function WorkspacePageWide({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
+/** Full-height workspace frame: no page scroll; children manage internal overflow. */
+export function WorkspacePageFill({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+      {children}
+    </div>
+  );
+}

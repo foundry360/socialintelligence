@@ -123,3 +123,25 @@ body {
 .scrollbar-thread:hover::-webkit-scrollbar-thumb {
   background: #000000;
 }
+
+@keyframes project-card-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+}
+
+.project-card-pulse {
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 200ms ease;
+}
+
+.project-card-pulse:hover {
+  animation: project-card-pulse 1.6s ease-in-out infinite;
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}

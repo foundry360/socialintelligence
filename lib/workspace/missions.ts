@@ -6,6 +6,7 @@ export type MissionRow = {
   updated_at: string;
   source_count: number;
   sort_order: number;
+  created_by: string | null;
 };
 
 export const MISSION_DESCRIPTION_MAX_LENGTH = 160;

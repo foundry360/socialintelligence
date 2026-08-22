@@ -5,6 +5,11 @@ import { createClient } from "@/lib/db/server";
 import { requireWorkspaceContext } from "@/lib/auth/workspace";
 import { chunkText } from "@/lib/knowledge/chunk";
 import {
+  embedTexts,
+  embeddingsConfigured,
+  formatEmbeddingForPg,
+} from "@/lib/embeddings";
+import {
   buildSourceMetadata,
   buildSourceSummary,
 } from "@/lib/workspace/library";
@@ -341,12 +346,25 @@ async function rebuildChunks(
   await supabase.from("knowledge_chunks").delete().eq("source_id", sourceId);
   const chunks = chunkText(body);
   if (chunks.length === 0) return;
+
+  let vectors: number[][] = [];
+  if (embeddingsConfigured()) {
+    try {
+      vectors = await embedTexts(chunks);
+    } catch (error) {
+      console.warn("Chunk embedding failed:", error);
+    }
+  }
+
   const { error } = await supabase.from("knowledge_chunks").insert(
     chunks.map((content, chunk_index) => ({
       tenant_id: tenantId,
       source_id: sourceId,
       chunk_index,
       content,
+      ...(vectors[chunk_index]
+        ? { embedding: formatEmbeddingForPg(vectors[chunk_index]) }
+        : {}),
     })),
   );
   if (error) throw new Error(error.message);
@@ -381,7 +399,6 @@ export async function addKnowledgeNote(formData: FormData) {
   if (evidence_status === "accepted") {
     await rebuildChunks(ctx.tenantId, data.id, body);
   }
-  revalidatePath("/workspace/sources");
   revalidatePath("/workspace/chat");
   revalidatePath("/workspace/library");
   return data.id;
@@ -424,7 +441,6 @@ export async function addKnowledgeUrl(formData: FormData) {
   if (evidence_status === "accepted") {
     await rebuildChunks(ctx.tenantId, data.id, fetched.text);
   }
-  revalidatePath("/workspace/sources");
   revalidatePath("/workspace/chat");
   revalidatePath("/workspace/library");
   return data.id;
@@ -512,8 +528,8 @@ export async function addKnowledgeUpload(formData: FormData) {
     await rebuildChunks(ctx.tenantId, data.id, extracted.text);
   }
 
-  revalidatePath("/workspace/sources");
   revalidatePath("/workspace/chat");
+  revalidatePath("/workspace/library");
   return data.id;
 }
 
@@ -544,6 +560,12 @@ export async function refreshKnowledgeUrl(formData: FormData) {
       url: fetched.finalUrl,
       body: fetched.text,
       title: source.title || fetched.title,
+      summary: buildSourceSummary(fetched.text),
+      metadata: buildSourceMetadata(fetched.text, {
+        source_kind: "url",
+        original_url: source.url,
+        final_url: fetched.finalUrl,
+      }),
     })
     .eq("id", id)
     .eq("tenant_id", ctx.tenantId);
@@ -554,8 +576,8 @@ export async function refreshKnowledgeUrl(formData: FormData) {
     await rebuildChunks(ctx.tenantId, id, fetched.text);
   }
 
-  revalidatePath("/workspace/sources");
   revalidatePath("/workspace/chat");
+  revalidatePath("/workspace/library");
 }
 
 export async function setSourceEvidenceStatus(formData: FormData) {
@@ -580,8 +602,8 @@ export async function setSourceEvidenceStatus(formData: FormData) {
     await supabase.from("knowledge_chunks").delete().eq("source_id", id);
   }
 
-  revalidatePath("/workspace/sources");
   revalidatePath("/workspace/chat");
+  revalidatePath("/workspace/library");
 }
 
 export async function renameKnowledgeSource(sourceId: string, title: string) {
@@ -599,7 +621,6 @@ export async function renameKnowledgeSource(sourceId: string, title: string) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/workspace/sources");
   revalidatePath("/workspace/chat");
   revalidatePath("/workspace/library");
 }
@@ -619,7 +640,6 @@ export async function removeKnowledgeSource(sourceId: string) {
 
   await supabase.from("knowledge_chunks").delete().eq("source_id", sourceId);
 
-  revalidatePath("/workspace/sources");
   revalidatePath("/workspace/chat");
   revalidatePath("/workspace/library");
 }

@@ -21,7 +21,7 @@ export default async function WorkspaceMissionsPage() {
 
   const { data: missionRows } = await supabase
     .from("missions")
-    .select("id, title, description, created_at, updated_at, sort_order")
+    .select("id, title, description, created_at, updated_at, sort_order, created_by")
     .eq("tenant_id", ctx.tenantId)
     .is("deleted_at", null)
     .order("sort_order", { ascending: true })
@@ -53,6 +53,7 @@ export default async function WorkspaceMissionsPage() {
     updated_at: m.updated_at,
     source_count: sourceStats.get(m.id) ?? 0,
     sort_order: m.sort_order ?? 0,
+    created_by: m.created_by ?? null,
   }));
 
   return (
@@ -66,7 +67,10 @@ export default async function WorkspaceMissionsPage() {
       }
     >
       <WorkspacePageWide>
-        <MissionsDashboard missions={missions} />
+        <MissionsDashboard
+          missions={missions}
+          currentUserId={ctx.user.id}
+        />
       </WorkspacePageWide>
     </WorkspaceShell>
   );

@@ -2,6 +2,11 @@ import "server-only";
 
 import { createClient } from "@/lib/db/server";
 import { createServiceClient } from "@/lib/db/supabase";
+import {
+  embedText,
+  embeddingsConfigured,
+  formatEmbeddingForPg,
+} from "@/lib/embeddings";
 import { formatTenantKnowledgeBlock } from "@/lib/intelligence";
 import type {
   Capability,
@@ -314,42 +319,71 @@ export async function retrieveEvidenceChunks(
   const sourceIds = selected.map((s) => s.id);
   const metaById = new Map(selected.map((s) => [s.id, s] as const));
 
+  const mapRetrievedRows = (
+    rows: {
+      chunk_id: string;
+      source_id: string;
+      source_title: string;
+      chunk_index: number;
+      content: string;
+      rank: number;
+    }[],
+  ) =>
+    rows
+      .filter((row) => metaById.has(row.source_id))
+      .map((row) => {
+        const meta = metaById.get(row.source_id);
+        return {
+          chunkId: row.chunk_id,
+          sourceId: row.source_id,
+          sourceTitle: row.source_title,
+          sourceType: meta?.source_type,
+          sourceUrl: meta?.url,
+          chunkIndex: row.chunk_index,
+          content: row.content,
+          rank: row.rank,
+        } satisfies RetrievedChunk;
+      });
+
   if (!websiteFocus && query.trim()) {
-    const { data: ftsRows } = await db.rpc("search_knowledge_chunks", {
-      p_tenant_id: tenantId,
-      p_query: query,
-      p_limit: limit,
-    });
-    // RPC enforces is_tenant_member(auth.uid()) - service role has no uid, so this may fail.
-    // Ignore FTS failures and continue with direct chunk reads.
-    if (ftsRows && ftsRows.length > 0) {
-      const filtered = ftsRows.filter((row: { source_id: string }) =>
-        metaById.has(row.source_id),
-      );
-      if (filtered.length > 0) {
-        return filtered.map(
-          (row: {
-            chunk_id: string;
-            source_id: string;
-            source_title: string;
-            chunk_index: number;
-            content: string;
-            rank: number;
-          }) => {
-            const meta = metaById.get(row.source_id);
-            return {
-              chunkId: row.chunk_id,
-              sourceId: row.source_id,
-              sourceTitle: row.source_title,
-              sourceType: meta?.source_type,
-              sourceUrl: meta?.url,
-              chunkIndex: row.chunk_index,
-              content: row.content,
-              rank: row.rank,
-            } satisfies RetrievedChunk;
-          },
-        );
+    if (embeddingsConfigured()) {
+      try {
+        const queryEmbedding = await embedText(query);
+        if (queryEmbedding) {
+          const { data: vectorRows, error: vectorError } = await userClient.rpc(
+            "search_knowledge_chunks_vector",
+            {
+              p_tenant_id: tenantId,
+              p_embedding: formatEmbeddingForPg(queryEmbedding),
+              p_limit: limit,
+            },
+          );
+          if (vectorError) {
+            console.warn("Vector search failed:", vectorError.message);
+          } else if (vectorRows && vectorRows.length > 0) {
+            const mapped = mapRetrievedRows(vectorRows);
+            if (mapped.length > 0) return mapped;
+          }
+        }
+      } catch (error) {
+        console.warn("Vector search failed:", error);
       }
+    }
+
+    const { data: ftsRows, error: ftsError } = await userClient.rpc(
+      "search_knowledge_chunks",
+      {
+        p_tenant_id: tenantId,
+        p_query: query,
+        p_limit: limit,
+      },
+    );
+    if (ftsError) {
+      console.warn("FTS search failed:", ftsError.message);
+    }
+    if (ftsRows && ftsRows.length > 0) {
+      const mapped = mapRetrievedRows(ftsRows);
+      if (mapped.length > 0) return mapped;
     }
   }
 

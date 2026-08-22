@@ -4,6 +4,7 @@ import { WorkspacePageFill } from "@/components/workspace-page";
 import { LibraryPanel } from "@/components/library-panel";
 import { requireWorkspaceContext } from "@/lib/auth/workspace";
 import { createClient } from "@/lib/db/server";
+import { backfillMissingSourceMetadata } from "@/lib/knowledge/source-metadata";
 import {
   creatorDisplayName,
   type CustomLibraryCatalog,
@@ -15,6 +16,7 @@ import { createServiceClient } from "@/lib/db/supabase";
 
 export default async function LibraryPage() {
   const ctx = await requireWorkspaceContext();
+  await backfillMissingSourceMetadata(ctx.tenantId).catch(() => undefined);
   const supabase = await createClient();
 
   const [

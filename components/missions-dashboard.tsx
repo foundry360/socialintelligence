@@ -35,9 +35,18 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: "title", label: "Title A-Z" },
 ];
 
-export function MissionsDashboard({ missions }: { missions: MissionRow[] }) {
+type ProjectScope = "all" | "mine";
+
+export function MissionsDashboard({
+  missions,
+  currentUserId,
+}: {
+  missions: MissionRow[];
+  currentUserId: string;
+}) {
   const [view, setView] = useState<ViewMode>("grid");
   const [sort, setSort] = useState<SortMode>("custom");
+  const [scope, setScope] = useState<ProjectScope>("all");
   const [query, setQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [renameMission, setRenameMission] = useState<MissionRow | null>(null);
@@ -47,21 +56,31 @@ export function MissionsDashboard({ missions }: { missions: MissionRow[] }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
+  const scopedMissions = useMemo(() => {
+    if (scope === "mine") {
+      return missions.filter((mission) => mission.created_by === currentUserId);
+    }
+    return missions;
+  }, [currentUserId, missions, scope]);
+
   useEffect(() => {
     setCustomOrder(
-      [...missions]
+      [...scopedMissions]
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((mission) => mission.id),
     );
-  }, [missions]);
+  }, [scopedMissions]);
 
   const missionById = useMemo(
-    () => new Map(missions.map((mission) => [mission.id, mission])),
-    [missions],
+    () => new Map(scopedMissions.map((mission) => [mission.id, mission])),
+    [scopedMissions],
   );
 
   const dragEnabled =
-    view === "grid" && sort === "custom" && query.trim().length === 0;
+    view === "grid" &&
+    sort === "custom" &&
+    scope === "all" &&
+    query.trim().length === 0;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -114,15 +133,25 @@ export function MissionsDashboard({ missions }: { missions: MissionRow[] }) {
         <div className="flex h-9 items-center rounded-full border border-border bg-background p-0.5 text-sm">
           <button
             type="button"
-            aria-pressed
-            className="rounded-full bg-surface px-3.5 py-1.5 font-medium text-foreground shadow-sm"
+            aria-pressed={scope === "all"}
+            onClick={() => setScope("all")}
+            className={`rounded-full px-3.5 py-1.5 transition-colors ${
+              scope === "all"
+                ? "bg-surface font-medium text-foreground shadow-sm"
+                : "text-muted hover:text-foreground"
+            }`}
           >
             All
           </button>
           <button
             type="button"
-            aria-pressed={false}
-            className="rounded-full px-3.5 py-1.5 text-muted hover:text-foreground"
+            aria-pressed={scope === "mine"}
+            onClick={() => setScope("mine")}
+            className={`rounded-full px-3.5 py-1.5 transition-colors ${
+              scope === "mine"
+                ? "bg-surface font-medium text-foreground shadow-sm"
+                : "text-muted hover:text-foreground"
+            }`}
           >
             My projects
           </button>
@@ -177,10 +206,12 @@ export function MissionsDashboard({ missions }: { missions: MissionRow[] }) {
         </div>
       </div>
 
-      <h1 className="mt-8 text-2xl font-semibold tracking-tight">My projects</h1>
+      <h1 className="mt-8 text-2xl font-semibold tracking-tight">
+        {scope === "mine" ? "My projects" : "All projects"}
+      </h1>
 
       {view === "grid" ? (
-        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-6 grid grid-cols-1 gap-5 overflow-visible sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <button
             type="button"
             onClick={() => setShowCreate(true)}
@@ -246,7 +277,9 @@ export function MissionsDashboard({ missions }: { missions: MissionRow[] }) {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-10 text-center text-muted">
-                    No projects yet. Create one to start a focused chat.
+                    {scope === "mine"
+                      ? "You have not created any projects yet."
+                      : "No projects yet. Create one to start a focused chat."}
                   </td>
                 </tr>
               ) : (
@@ -272,14 +305,22 @@ export function MissionsDashboard({ missions }: { missions: MissionRow[] }) {
                         {mission.source_count}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => onDelete(mission.id)}
-                          disabled={pending}
-                          className="text-xs text-muted opacity-0 transition group-hover:opacity-100 hover:text-danger"
-                        >
-                          Delete
-                        </button>
+                        <ProjectActionsMenu
+                          missionTitle={mission.title}
+                          menuOpen={menuOpenId === mission.id}
+                          onMenuToggle={() =>
+                            setMenuOpenId((id) =>
+                              id === mission.id ? null : mission.id,
+                            )
+                          }
+                          onMenuClose={() => setMenuOpenId(null)}
+                          onRename={() => {
+                            setMenuOpenId(null);
+                            setRenameMission(mission);
+                          }}
+                          onDelete={() => onDelete(mission.id)}
+                          pending={pending}
+                        />
                       </td>
                     </tr>
                   ))
@@ -335,6 +376,117 @@ function MissionCard({
   onDelete: () => void;
   pending: boolean;
 }) {
+  return (
+    <div
+      onDragOver={(event) => {
+        if (!dragEnabled) return;
+        event.preventDefault();
+        onDragOver();
+      }}
+      onDragLeave={onDragLeave}
+      onDrop={(event) => {
+        if (!dragEnabled) return;
+        event.preventDefault();
+        onDrop();
+      }}
+      className={`group ${isDragging ? "" : "project-card-pulse"} relative flex min-h-[260px] flex-col overflow-visible rounded-2xl border border-border bg-[#FAFAFA] p-6 dark:bg-surface ${
+        isDragging ? "opacity-50" : ""
+      } ${isDropTarget ? "border-accent ring-2 ring-accent/30" : ""} ${
+        menuOpen ? "z-30" : ""
+      }`}
+    >
+      {dragEnabled ? (
+        <button
+          type="button"
+          draggable
+          aria-label={`Reorder ${mission.title}`}
+          onDragStart={(event) => {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", mission.id);
+            onDragStart();
+          }}
+          onDragEnd={onDragEnd}
+          className={`absolute left-0 top-1/2 z-10 inline-flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border border-border bg-surface text-muted shadow-sm transition-opacity hover:text-foreground active:cursor-grabbing ${
+            isDragging ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          }`}
+        >
+          <GripVertical className="h-4 w-4" aria-hidden />
+        </button>
+      ) : null}
+
+      <div className="mb-3 flex items-start gap-2">
+        <Link
+          href={`/workspace/missions/${mission.id}`}
+          className="min-w-0 flex-1 hover:opacity-90"
+        >
+          <h2 className="line-clamp-2 text-base font-semibold leading-snug text-foreground">
+            {mission.title}
+          </h2>
+        </Link>
+        <ProjectActionsMenu
+          missionTitle={mission.title}
+          menuOpen={menuOpen}
+          onMenuToggle={onMenuToggle}
+          onMenuClose={onMenuClose}
+          onRename={onRename}
+          onDelete={onDelete}
+          pending={pending}
+          className="shrink-0"
+          buttonClassName="h-7 w-7"
+        />
+      </div>
+
+      <div className="min-h-0 flex-1">
+        {mission.description ? (
+          <Link
+            href={`/workspace/missions/${mission.id}`}
+            className="mt-2 block hover:opacity-90"
+          >
+            <p className="text-sm leading-relaxed text-muted">
+              {mission.description}
+            </p>
+          </Link>
+        ) : null}
+      </div>
+
+      <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+        <p className="text-xs text-muted">
+          {formatMissionDate(mission.updated_at)} · {mission.source_count}{" "}
+          {mission.source_count === 1 ? "source" : "sources"}
+        </p>
+        <Link
+          href={`/workspace/missions/${mission.id}`}
+          aria-label={`Open chat for ${mission.title}`}
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-sm transition hover:opacity-90"
+        >
+          <MessageSquare className="h-4 w-4" aria-hidden />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function ProjectActionsMenu({
+  missionTitle,
+  menuOpen,
+  onMenuToggle,
+  onMenuClose,
+  onRename,
+  onDelete,
+  pending,
+  className = "",
+  buttonClassName = "h-8 w-8",
+}: {
+  missionTitle: string;
+  menuOpen: boolean;
+  onMenuToggle: () => void;
+  onMenuClose: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+  pending: boolean;
+  className?: string;
+  buttonClassName?: string;
+}) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -351,100 +503,49 @@ function MissionCard({
 
   return (
     <div
-      onDragOver={(event) => {
-        if (!dragEnabled) return;
-        event.preventDefault();
-        onDragOver();
-      }}
-      onDragLeave={onDragLeave}
-      onDrop={(event) => {
-        if (!dragEnabled) return;
-        event.preventDefault();
-        onDrop();
-      }}
-      className={`relative flex min-h-[260px] flex-col rounded-2xl border border-border bg-[#FAFAFA] p-6 transition dark:bg-surface ${
-        isDragging ? "opacity-50" : ""
-      } ${isDropTarget ? "border-accent ring-2 ring-accent/30" : ""}`}
+      ref={menuRef}
+      className={`relative inline-flex shrink-0 ${className}`.trim()}
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
     >
-      {dragEnabled ? (
-        <button
-          type="button"
-          draggable
-          aria-label={`Reorder ${mission.title}`}
-          onDragStart={(event) => {
-            event.dataTransfer.effectAllowed = "move";
-            event.dataTransfer.setData("text/plain", mission.id);
-            onDragStart();
-          }}
-          onDragEnd={onDragEnd}
-          className="absolute left-3 top-3 cursor-grab rounded-md p-1 text-muted hover:bg-black/5 hover:text-foreground active:cursor-grabbing dark:hover:bg-white/10"
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onMenuToggle();
+        }}
+        aria-label={`Project options for ${missionTitle}`}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        className={`inline-flex items-center justify-center rounded-md text-muted hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10 ${buttonClassName}`}
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {menuOpen ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-50 mt-1 w-32 rounded-md border border-border bg-surface py-1 text-sm shadow-lg"
         >
-          <GripVertical className="h-4 w-4" aria-hidden />
-        </button>
-      ) : null}
-      <div ref={menuRef} className="absolute right-3 top-3">
-        <button
-          type="button"
-          onClick={onMenuToggle}
-          aria-label="Project options"
-          className="rounded-md p-1 text-muted hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
-        >
-          <MoreVertical className="h-4 w-4" />
-        </button>
-        {menuOpen ? (
-          <div className="absolute right-0 z-10 mt-1 w-32 rounded-md border border-border bg-surface py-1 text-sm shadow-lg">
-            <button
-              type="button"
-              disabled={pending}
-              onClick={onRename}
-              className="block w-full px-3 py-1.5 text-left hover:bg-hover"
-            >
-              Rename
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={onDelete}
-              className="block w-full px-3 py-1.5 text-left text-danger hover:bg-hover"
-            >
-              Delete
-            </button>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="flex min-h-0 flex-1 flex-col">
-        <Link
-          href={`/workspace/missions/${mission.id}`}
-          className="hover:opacity-90"
-        >
-          <h2
-            className={`line-clamp-2 pr-8 text-base font-semibold leading-snug text-foreground ${
-              dragEnabled ? "pl-6" : ""
-            }`}
+          <button
+            type="button"
+            role="menuitem"
+            disabled={pending}
+            onClick={onRename}
+            className="block w-full px-3 py-1.5 text-left hover:bg-hover"
           >
-            {mission.title}
-          </h2>
-          {mission.description ? (
-            <p className="mt-2 text-sm leading-relaxed text-muted">
-              {mission.description}
-            </p>
-          ) : null}
-        </Link>
-        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
-          <p className="text-xs text-muted">
-            {formatMissionDate(mission.updated_at)} · {mission.source_count}{" "}
-            {mission.source_count === 1 ? "source" : "sources"}
-          </p>
-          <Link
-            href={`/workspace/missions/${mission.id}`}
-            aria-label={`Open chat for ${mission.title}`}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-sm transition hover:opacity-90"
+            Rename
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={pending}
+            onClick={onDelete}
+            className="block w-full px-3 py-1.5 text-left text-danger hover:bg-hover"
           >
-            <MessageSquare className="h-4 w-4" aria-hidden />
-          </Link>
+            Delete
+          </button>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

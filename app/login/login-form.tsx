@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/db/client";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  provisionCurrentUserOrganization,
+  resolvePostAuthPath,
+} from "@/app/onboarding/actions";
+
+const PENDING_ORG_KEY = "x2_pending_organization_name";
 
 export function LoginForm() {
   const router = useRouter();
@@ -12,6 +18,7 @@ export function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [organizationName, setOrganizationName] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -26,6 +33,7 @@ export function LoginForm() {
     const supabase = createClient();
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPassword = password.trim();
+    const orgName = organizationName.trim();
 
     try {
       if (mode === "signin") {
@@ -34,18 +42,59 @@ export function LoginForm() {
           password: normalizedPassword,
         });
         if (signInError) throw signInError;
-        router.push(next);
+
+        const pendingOrg =
+          typeof window !== "undefined"
+            ? window.sessionStorage.getItem(PENDING_ORG_KEY)
+            : null;
+        const path = await resolvePostAuthPath(pendingOrg);
+        if (typeof window !== "undefined") {
+          window.sessionStorage.removeItem(PENDING_ORG_KEY);
+        }
+        router.push(path === "/workspace" ? next : path);
         router.refresh();
         return;
       }
 
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password: normalizedPassword,
-      });
+      if (orgName.length < 2) {
+        throw new Error("Organization name must be at least 2 characters.");
+      }
+
+      const { data: signUpData, error: signUpError } =
+        await supabase.auth.signUp({
+          email: normalizedEmail,
+          password: normalizedPassword,
+        });
       if (signUpError) throw signUpError;
+
+      if (signUpData.session) {
+        // Ensure auth cookies are written before the server action runs.
+        await supabase.auth.getSession();
+        let result = await provisionCurrentUserOrganization(orgName);
+        if (!result.ok && result.code === "unauthenticated") {
+          result = await provisionCurrentUserOrganization(orgName);
+        }
+        if (!result.ok && result.code !== "already_member") {
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(PENDING_ORG_KEY, orgName);
+          }
+          router.push("/onboarding");
+          router.refresh();
+          return;
+        }
+        if (typeof window !== "undefined") {
+          window.sessionStorage.removeItem(PENDING_ORG_KEY);
+        }
+        router.push("/workspace");
+        router.refresh();
+        return;
+      }
+
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(PENDING_ORG_KEY, orgName);
+      }
       setMessage(
-        "Account created. If email confirmation is enabled, check your inbox; otherwise sign in.",
+        "Account created. Check your email to confirm, then sign in - your workspace will be created automatically.",
       );
       setMode("signin");
     } catch (err) {
@@ -56,26 +105,32 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex w-full max-w-sm flex-col gap-4">
-      <div className="flex gap-2 text-sm">
-        <button
-          type="button"
-          className={mode === "signin" ? "font-semibold" : "text-muted"}
-          onClick={() => setMode("signin")}
-        >
-          Sign in
-        </button>
-        <span className="text-muted">/</span>
-        <button
-          type="button"
-          className={mode === "signup" ? "font-semibold" : "text-muted"}
-          onClick={() => setMode("signup")}
-        >
-          Sign up
-        </button>
+    <form onSubmit={onSubmit} className="flex w-full flex-col gap-4">
+      <div>
+        <p className="text-sm text-muted">Social Intelligence</p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+          {mode === "signin" ? "Sign in" : "Create an account"}
+        </h1>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
+      {mode === "signup" ? (
+        <label className="flex w-full flex-col gap-1 text-sm">
+          Organization name
+          <input
+            type="text"
+            required
+            minLength={2}
+            maxLength={120}
+            autoComplete="organization"
+            placeholder="Acme Corp"
+            value={organizationName}
+            onChange={(e) => setOrganizationName(e.target.value)}
+            className="w-full rounded-md border border-border bg-input px-3 py-2.5 text-foreground"
+          />
+        </label>
+      ) : null}
+
+      <label className="flex w-full flex-col gap-1 text-sm">
         Email
         <input
           type="email"
@@ -83,11 +138,11 @@ export function LoginForm() {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-md border border-border bg-input px-3 py-2 text-foreground"
+          className="w-full rounded-md border border-border bg-input px-3 py-2.5 text-foreground"
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex w-full flex-col gap-1 text-sm">
         Password
         <input
           type="password"
@@ -96,7 +151,7 @@ export function LoginForm() {
           autoComplete={mode === "signin" ? "current-password" : "new-password"}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded-md border border-border bg-input px-3 py-2 text-foreground"
+          className="w-full rounded-md border border-border bg-input px-3 py-2.5 text-foreground"
         />
       </label>
 
@@ -114,10 +169,51 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+        className="w-full rounded-md bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground disabled:opacity-60"
       >
-        {pending ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+        {pending
+          ? "Please wait…"
+          : mode === "signin"
+            ? "Sign in"
+            : "Create account"}
       </button>
+
+      {mode === "signin" ? (
+        <p className="text-center text-sm text-muted">
+          New to{" "}
+          <span className="text-foreground">
+            <span className="font-bold">X</span>
+            <span className="font-medium">2</span>
+          </span>
+          ?{" "}
+          <button
+            type="button"
+            className="font-medium text-accent underline-offset-2 hover:underline"
+            onClick={() => {
+              setError(null);
+              setMessage(null);
+              setMode("signup");
+            }}
+          >
+            Create an account
+          </button>
+        </p>
+      ) : (
+        <p className="text-center text-sm text-muted">
+          Already have an account?{" "}
+          <button
+            type="button"
+            className="font-medium text-accent underline-offset-2 hover:underline"
+            onClick={() => {
+              setError(null);
+              setMessage(null);
+              setMode("signin");
+            }}
+          >
+            Sign in
+          </button>
+        </p>
+      )}
     </form>
   );
 }

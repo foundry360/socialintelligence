@@ -2,7 +2,6 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 import {
-  ensureBootstrapMembership,
   getSessionUser,
   listMembershipsForUser,
   type MembershipRow,
@@ -27,11 +26,10 @@ export async function requireWorkspaceContext(): Promise<WorkspaceContext> {
     redirect("/login?next=/workspace");
   }
 
-  await ensureBootstrapMembership(user.id);
   const memberships = await listMembershipsForUser(user.id);
   const membership = memberships[0];
   if (!membership) {
-    redirect("/workspace");
+    redirect("/onboarding");
   }
 
   const supabase = await createClient();

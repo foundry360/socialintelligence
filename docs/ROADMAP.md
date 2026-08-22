@@ -42,26 +42,25 @@ Make the app real enough to hold tenant knowledge safely.
 
 ---
 
-## Phase 2 - Knowledge Workspace (“Notebook”) (current)
+## Phase 2 - Knowledge Workspace (“Notebook”) ✅
 
 NotebookLM-style core - sources in, grounded answers out.
 
 **Deliverables**
 
 - Workspace per tenant (one primary notebook for MVP)
-- Structured spine: company profile, capabilities, personas/ICP, terminology, POVs
+- Structured spine: company profile, industries & markets, capabilities, personas, questions & conversations, POVs, proof & evidence, terminology
 - Sources: notes, URL import, document upload (PDF/TXT/Markdown); sensitivity + accept/reject as authority evidence
 - Chunk + Postgres FTS retrieval (pgvector embeddings next iteration)
 - Grounded chat with citations
 - Confidential sources excluded from model context
+- Overview readiness hub (spine progress + evidence + next action)
 
-**Apply migration:** `supabase/migrations/20260821000004_knowledge_workspace.sql`
-
-**Exit criteria:** Team can load curated notes + structured profile and ask cited questions.
+**Exit criteria:** Team can load curated notes + structured profile and ask cited questions. ✅
 
 ---
 
-## Phase 3 - Authority Baseline
+## Phase 3 - Authority Baseline (current)
 
 **Deliverables**
 

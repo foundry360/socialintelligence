@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import {
-  ensureBootstrapMembership,
   getSessionUser,
   listMembershipsForUser,
 } from "@/lib/auth/session";
@@ -109,13 +108,12 @@ export async function POST(request: Request) {
     );
   }
 
-  await ensureBootstrapMembership(user.id);
   const memberships = await listMembershipsForUser(user.id);
   const membership = memberships[0];
   if (!membership) {
     return NextResponse.json(
       {
-        answer: "No tenant membership found.",
+        answer: "No workspace yet. Create an organization first.",
         citations: [],
         evidenceCount: 0,
       },

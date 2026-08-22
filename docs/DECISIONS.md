@@ -4,6 +4,23 @@ Format: short ADR entries. Newest first.
 
 ---
 
+## ADR-009 - Tenant onboarding creates org + workspace
+
+**Status:** Accepted  
+**Date:** 2026-08-21
+
+**Decision:** New users create their own organization (tenant) and primary knowledge workspace after signup. Kona Kai is a normal seeded tenant for demos, not a bootstrap default for every account. Remove `BOOTSTRAP_TENANT_SLUG` auto-membership.
+
+**Rationale:** Multi-tenant SaaS requires each client to own an isolated tenant. Special-casing the first client breaks the product model.
+
+**Consequences:**
+
+- `/onboarding` provisions tenant, brand, primary workspace, empty company profile, and owner membership via service role
+- `requireWorkspaceContext` redirects users without memberships to `/onboarding`
+- Invites / multi-tenant switcher remain future work; first membership still defines active tenant for MVP
+
+---
+
 ## ADR-008 - Knowledge-first delivery sequence
 
 **Status:** Accepted  

@@ -37,15 +37,22 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/login") || path.startsWith("/auth");
   const isPublic =
     path === "/" || isAuthRoute || path.startsWith("/_next");
+  // Server Actions POST to the current page. Do not redirect those, or the
+  // client gets an HTML response and shows "unexpected response from server".
+  const isServerAction = request.headers.has("next-action");
 
-  if (!user && path.startsWith("/workspace")) {
+  if (
+    !user &&
+    (path.startsWith("/workspace") || path.startsWith("/onboarding")) &&
+    !isServerAction
+  ) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", path);
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (user && path === "/login") {
+  if (user && path === "/login" && !isServerAction && request.method === "GET") {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/workspace";
     return NextResponse.redirect(redirectUrl);

@@ -10,15 +10,12 @@ import {
 } from "react";
 import {
   BookOpenCheck,
-  File,
   Globe,
-  GlobeCheck,
   PanelLeftClose,
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
   SendHorizontal,
-  SquareText,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -26,6 +23,7 @@ import type { ChatResult } from "@/app/workspace/actions";
 import { AddSourceButton } from "@/components/add-source-modal";
 import { SaveToNoteButton } from "@/components/save-to-note-modal";
 import { SourceRowActions } from "@/components/source-row-actions";
+import { SourceTypeIcon } from "@/components/source-type-icon";
 
 export type ChatSourceOption = {
   id: string;
@@ -79,22 +77,6 @@ function sourceTypeLabel(sourceType: string): "WEB" | "DOC" | "TEXT" {
 
 function sourceDisplayTitle(title: string, sourceType: string): string {
   return `${sourceTypeLabel(sourceType)} - ${title}`;
-}
-
-function SourceTypeIcon({
-  sourceType,
-  className = "mt-0.5 h-4 w-4 shrink-0 text-muted",
-}: {
-  sourceType: string;
-  className?: string;
-}) {
-  if (sourceType === "url") {
-    return <GlobeCheck className={className} aria-hidden />;
-  }
-  if (sourceType === "note") {
-    return <SquareText className={className} aria-hidden />;
-  }
-  return <File className={className} aria-hidden />;
 }
 
 function CitationMark({
@@ -627,7 +609,10 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
                     <li key={s.id} className="group">
                       <div className="flex items-start gap-2 rounded-md p-2 hover:bg-hover">
                         <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2">
-                          <SourceTypeIcon sourceType={s.sourceType} />
+                          <SourceTypeIcon
+                            sourceType={s.sourceType}
+                            url={s.url}
+                          />
                           <span className="min-w-0 flex-1">
                             <span className="block text-sm font-medium text-foreground">
                               {sourceDisplayTitle(s.title, s.sourceType)}
@@ -825,7 +810,10 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
                 <ul className="space-y-4 text-sm">
                   {citedSources.map((s) => (
                     <li key={s.sourceId} className="flex items-start gap-2">
-                      <SourceTypeIcon sourceType={s.sourceType} />
+                      <SourceTypeIcon
+                        sourceType={s.sourceType}
+                        url={s.url}
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-foreground">
                           {sourceDisplayTitle(s.title, s.sourceType)}

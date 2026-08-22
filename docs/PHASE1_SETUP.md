@@ -47,7 +47,6 @@ Fill:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `BOOTSTRAP_TENANT_SLUG=kona-kai`
 - `ANTHROPIC_API_KEY` (needed when calling Claude; workspace shell works without it)
 
 ## 5. Run
@@ -56,13 +55,13 @@ Fill:
 pnpm dev
 ```
 
-1. Open `/login` → sign up
-2. Visit `/workspace` - bootstrap attaches you as **owner** of Kona Kai
-3. Confirm tenant + seed workspace/profile/POV count
+1. Open `/login` → create an account
+2. Create your organization on `/onboarding` (tenant + primary workspace)
+3. Optional: seed Kona Kai via `supabase/seed.sql` only if you want that demo tenant; membership is no longer auto-bootstrapped
 
 ## Exit criteria
 
 - [ ] Authenticated user
-- [ ] Membership on Kona Kai tenant
-- [ ] Workspace shell shows seeded knowledge workspace
+- [ ] Membership on a tenant they created (or were invited to)
+- [ ] Workspace shell shows that tenant’s primary knowledge workspace
 - [ ] `ClaudeProvider.complete` works when API key is set (smoke via future Phase 2 chat or a small script)

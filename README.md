@@ -2,13 +2,13 @@
 
 Multi-tenant **Thought Leadership Intelligence OS** by Foundry360.
 
-First client: **Kona Kai Corp**.
+Demo / seed tenant: **Kona Kai Corp** (optional). Every real customer gets their own tenant + workspace.
 
 > Not “AI that writes LinkedIn posts.” Curate company-true knowledge, establish an authority baseline, align messaging, then systematically create authoritative content.
 
 ## Status
 
-**Phase 1 - Platform spine** (in progress): Supabase auth/DB, RLS, Kona Kai seed, live Claude provider, workspace shell.
+**Phase 2 complete / Phase 3 next:** Knowledge workspace with per-tenant onboarding (create org + primary workspace), structured knowledge, grounded chat.
 
 Knowledge-first sequence: see [`docs/BUILD_PLAN.md`](./docs/BUILD_PLAN.md) and [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
@@ -32,9 +32,9 @@ pnpm dev
 ### Supabase
 
 1. Create a Supabase project.
-2. Run SQL files in `supabase/migrations/` in order, then `supabase/seed.sql`.
+2. Run SQL files in `supabase/migrations/` in order. Optionally run `supabase/seed.sql` for the Kona Kai demo tenant.
 3. Enable Email auth.
-4. Create a user, then link them to Kona Kai (see seed file comments) or set `BOOTSTRAP_TENANT_SLUG=kona-kai` and sign up with an email you control - first membership auto-links when configured.
+4. Sign up in the app, then create your organization on `/onboarding`. That creates your tenant, primary workspace, and owner membership.
 
 ## Docs
 

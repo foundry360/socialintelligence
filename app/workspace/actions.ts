@@ -203,6 +203,131 @@ export async function removeTerminology(formData: FormData) {
   revalidatePath("/workspace/knowledge");
 }
 
+export async function addIndustry(formData: FormData) {
+  const ctx = await requireWorkspaceContext();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "").trim();
+  const payload = {
+    tenant_id: ctx.tenantId,
+    name: String(formData.get("name") ?? "").trim(),
+    description: String(formData.get("description") ?? "").trim(),
+  };
+  const { error } = id
+    ? await supabase
+        .from("industries")
+        .update(payload)
+        .eq("id", id)
+        .eq("tenant_id", ctx.tenantId)
+    : await supabase.from("industries").insert(payload);
+  if (error) throw new Error(error.message);
+  revalidatePath("/workspace/knowledge");
+}
+
+export async function removeIndustry(formData: FormData) {
+  const ctx = await requireWorkspaceContext();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) throw new Error("Missing industry id");
+  const { error } = await supabase
+    .from("industries")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenantId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/workspace/knowledge");
+}
+
+export async function addProofItem(formData: FormData) {
+  const ctx = await requireWorkspaceContext();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "").trim();
+  const payload = {
+    tenant_id: ctx.tenantId,
+    proof_type: String(formData.get("proof_type") ?? "case_study").trim(),
+    title: String(formData.get("title") ?? "").trim(),
+    summary: String(formData.get("summary") ?? "").trim(),
+  };
+  const { error } = id
+    ? await supabase
+        .from("proof_items")
+        .update(payload)
+        .eq("id", id)
+        .eq("tenant_id", ctx.tenantId)
+    : await supabase.from("proof_items").insert(payload);
+  if (error) throw new Error(error.message);
+  revalidatePath("/workspace/knowledge");
+}
+
+export async function removeProofItem(formData: FormData) {
+  const ctx = await requireWorkspaceContext();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) throw new Error("Missing proof item id");
+  const { error } = await supabase
+    .from("proof_items")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenantId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/workspace/knowledge");
+}
+
+const BUYING_STAGES = new Set([
+  "awareness",
+  "consideration",
+  "decision",
+  "retention",
+]);
+const QUESTION_PRIORITIES = new Set(["high", "medium", "low"]);
+
+export async function addMarketQuestion(formData: FormData) {
+  const ctx = await requireWorkspaceContext();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "").trim();
+  const personaRaw = String(formData.get("persona_id") ?? "").trim();
+  const buyingStage = String(formData.get("buying_stage") ?? "awareness").trim();
+  const priority = String(formData.get("priority") ?? "medium").trim();
+  if (!BUYING_STAGES.has(buyingStage)) {
+    throw new Error("Invalid buying stage");
+  }
+  if (!QUESTION_PRIORITIES.has(priority)) {
+    throw new Error("Invalid priority");
+  }
+  const payload = {
+    tenant_id: ctx.tenantId,
+    question: String(formData.get("question") ?? "").trim(),
+    persona_id: personaRaw || null,
+    topic: String(formData.get("topic") ?? "").trim(),
+    buying_stage: buyingStage,
+    priority,
+    notes: String(formData.get("notes") ?? "").trim(),
+  };
+  if (!payload.question) throw new Error("Question is required");
+  const { error } = id
+    ? await supabase
+        .from("market_questions")
+        .update(payload)
+        .eq("id", id)
+        .eq("tenant_id", ctx.tenantId)
+    : await supabase.from("market_questions").insert(payload);
+  if (error) throw new Error(error.message);
+  revalidatePath("/workspace/knowledge");
+}
+
+export async function removeMarketQuestion(formData: FormData) {
+  const ctx = await requireWorkspaceContext();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) throw new Error("Missing market question id");
+  const { error } = await supabase
+    .from("market_questions")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenantId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/workspace/knowledge");
+}
+
 async function rebuildChunks(
   tenantId: string,
   sourceId: string,
@@ -579,7 +704,8 @@ export async function askKnowledgeChat(
           systemInstructions: [
             "You are the Knowledge Workspace analyst for a thought leadership OS.",
             "Ground answers in ACCEPTED EVIDENCE SOURCES first (including imported company website pages).",
-            "Structured tenant knowledge (profile/POVs) is supporting context - do not claim the website is unavailable if website evidence excerpts are present.",
+            "Structured tenant knowledge is supporting context: company profile, industries & markets, capabilities, personas, questions & conversations (market questions by persona, topic, buying stage, priority), points of view, proof & evidence (case studies, outcomes, certifications, awards, partnerships, experience, statistics, research, frameworks, testimonials), and terminology.",
+            "Use proof & evidence, industries/markets, and market questions when relevant. Do not claim the website is unavailable if website evidence excerpts are present.",
             "When the user asks about 'our website' / homepage / site messaging, use evidence items marked kind=website and cite them.",
             "If website evidence is present, summarize from that evidence. Do not invent a disclaimer that website content is missing.",
             "Only say information is unavailable when neither evidence nor structured knowledge covers it.",

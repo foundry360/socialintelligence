@@ -2,9 +2,12 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import {
   KnowledgeChecklist,
   type KnowledgeCapability,
+  type KnowledgeIndustry,
+  type KnowledgeMarketQuestion,
   type KnowledgePersona,
   type KnowledgePov,
   type KnowledgeProfile,
+  type KnowledgeProofItem,
   type KnowledgeTerm,
 } from "@/components/knowledge-checklist";
 import { requireWorkspaceContext } from "@/lib/auth/workspace";
@@ -16,9 +19,12 @@ export default async function KnowledgePage() {
 
   const [
     { data: profile },
+    { data: industries },
     { data: povs },
     { data: capabilities },
     { data: personas },
+    { data: marketQuestions },
+    { data: proofItems },
     { data: terms },
   ] = await Promise.all([
     supabase
@@ -28,6 +34,12 @@ export default async function KnowledgePage() {
       )
       .eq("tenant_id", ctx.tenantId)
       .maybeSingle(),
+    supabase
+      .from("industries")
+      .select("id, name, description")
+      .eq("tenant_id", ctx.tenantId)
+      .is("deleted_at", null)
+      .order("name"),
     supabase
       .from("points_of_view")
       .select("id, topic_label, stance, status, principles, disagrees_with")
@@ -46,6 +58,20 @@ export default async function KnowledgePage() {
       .eq("tenant_id", ctx.tenantId)
       .is("deleted_at", null)
       .order("name"),
+    supabase
+      .from("market_questions")
+      .select(
+        "id, question, persona_id, topic, buying_stage, priority, notes",
+      )
+      .eq("tenant_id", ctx.tenantId)
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("proof_items")
+      .select("id, proof_type, title, summary")
+      .eq("tenant_id", ctx.tenantId)
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false }),
     supabase
       .from("terminology_entries")
       .select("id, preferred_term, avoid_terms, definition")
@@ -66,9 +92,14 @@ export default async function KnowledgePage() {
     >
       <KnowledgeChecklist
         profile={(profile as KnowledgeProfile | null) ?? null}
+        industries={(industries as KnowledgeIndustry[] | null) ?? []}
         povs={(povs as KnowledgePov[] | null) ?? []}
         capabilities={(capabilities as KnowledgeCapability[] | null) ?? []}
         personas={(personas as KnowledgePersona[] | null) ?? []}
+        marketQuestions={
+          (marketQuestions as KnowledgeMarketQuestion[] | null) ?? []
+        }
+        proofItems={(proofItems as KnowledgeProofItem[] | null) ?? []}
         terms={(terms as KnowledgeTerm[] | null) ?? []}
       />
     </WorkspaceShell>

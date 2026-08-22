@@ -19,7 +19,9 @@ All tenant-owned entities include `tenantId` / `tenant_id` unless noted.
 |--------|-------------|
 | `CompanyProfile` | Positioning, summary, differentiators |
 | `Capability` | Services / offerings |
-| `Industry` | Industries served |
+| `Industry` | Industries and markets served |
+| `ProofItem` | Structured proof/evidence (case studies, outcomes, certifications, awards, etc.) |
+| `MarketQuestion` | Questions the market is asking, organized by persona → topic → buying stage → priority |
 | `Document` / `KnowledgeDocument` | Internal docs / research (metadata + storage ref + optional chunks) |
 | `Terminology` | Preferred terms and forbidden/generic replacements |
 | `ContentAsset` | Existing published or archived content |

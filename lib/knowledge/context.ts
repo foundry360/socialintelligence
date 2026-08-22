@@ -3,7 +3,14 @@ import "server-only";
 import { createClient } from "@/lib/db/server";
 import { createServiceClient } from "@/lib/db/supabase";
 import { formatTenantKnowledgeBlock } from "@/lib/intelligence";
-import type { CompanyProfile, TerminologyEntry } from "@/domains/knowledge/types";
+import type {
+  Capability,
+  CompanyProfile,
+  Industry,
+  MarketQuestion,
+  ProofItem,
+  TerminologyEntry,
+} from "@/domains/knowledge/types";
 import type { PointOfView } from "@/domains/pov/types";
 import type { Persona } from "@/domains/audience/types";
 
@@ -12,34 +19,66 @@ export async function buildStructuredKnowledgeText(
 ): Promise<string> {
   // Structured knowledge is readable under RLS; keep user-scoped client.
   const supabase = await createClient();
-  const [{ data: company }, { data: povs }, { data: personas }, { data: terms }] =
-    await Promise.all([
-      supabase
-        .from("company_profiles")
-        .select(
-          "id, tenant_id, legal_name, display_name, tagline, summary, positioning, differentiators, website_url, website_urls, created_at, updated_at",
-        )
-        .eq("tenant_id", tenantId)
-        .maybeSingle(),
-      supabase
-        .from("points_of_view")
-        .select("*")
-        .eq("tenant_id", tenantId)
-        .is("deleted_at", null)
-        .limit(20),
-      supabase
-        .from("personas")
-        .select("*")
-        .eq("tenant_id", tenantId)
-        .is("deleted_at", null)
-        .limit(20),
-      supabase
-        .from("terminology_entries")
-        .select("*")
-        .eq("tenant_id", tenantId)
-        .is("deleted_at", null)
-        .limit(50),
-    ]);
+  const [
+    { data: company },
+    { data: industries },
+    { data: capabilities },
+    { data: povs },
+    { data: personas },
+    { data: proofItems },
+    { data: marketQuestions },
+    { data: terms },
+  ] = await Promise.all([
+    supabase
+      .from("company_profiles")
+      .select(
+        "id, tenant_id, legal_name, display_name, tagline, summary, positioning, differentiators, website_url, website_urls, created_at, updated_at",
+      )
+      .eq("tenant_id", tenantId)
+      .maybeSingle(),
+    supabase
+      .from("industries")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
+      .limit(40),
+    supabase
+      .from("capabilities")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
+      .limit(40),
+    supabase
+      .from("points_of_view")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
+      .limit(20),
+    supabase
+      .from("personas")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
+      .limit(20),
+    supabase
+      .from("proof_items")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
+      .limit(50),
+    supabase
+      .from("market_questions")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
+      .limit(80),
+    supabase
+      .from("terminology_entries")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null)
+      .limit(50),
+  ]);
 
   const companyMapped: CompanyProfile | null = company
     ? {
@@ -61,6 +100,24 @@ export async function buildStructuredKnowledgeText(
         updatedAt: company.updated_at,
       }
     : null;
+
+  const industryMapped: Industry[] = (industries ?? []).map((i) => ({
+    id: i.id,
+    tenantId,
+    name: i.name,
+    description: i.description ?? "",
+    createdAt: i.created_at,
+    updatedAt: i.updated_at,
+  }));
+
+  const capabilityMapped: Capability[] = (capabilities ?? []).map((c) => ({
+    id: c.id,
+    tenantId,
+    name: c.name,
+    description: c.description ?? "",
+    createdAt: c.created_at,
+    updatedAt: c.updated_at,
+  }));
 
   const povMapped: PointOfView[] = (povs ?? []).map((p) => ({
     id: p.id,
@@ -87,6 +144,61 @@ export async function buildStructuredKnowledgeText(
     updatedAt: p.updated_at,
   }));
 
+  const proofMapped: ProofItem[] = (proofItems ?? []).map((p) => ({
+    id: p.id,
+    tenantId,
+    proofType: p.proof_type,
+    title: p.title,
+    summary: p.summary ?? "",
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
+  }));
+
+  const personaNameById = new Map(
+    personaMapped.map((p) => [p.id, p.name] as const),
+  );
+  const priorityRank: Record<string, number> = {
+    high: 0,
+    medium: 1,
+    low: 2,
+  };
+  const stageRank: Record<string, number> = {
+    awareness: 0,
+    consideration: 1,
+    decision: 2,
+    retention: 3,
+  };
+  const questionsMapped: MarketQuestion[] = (marketQuestions ?? [])
+    .map((q) => ({
+      id: q.id,
+      tenantId,
+      question: q.question,
+      personaId: q.persona_id ?? undefined,
+      personaName: q.persona_id
+        ? personaNameById.get(q.persona_id)
+        : undefined,
+      topic: q.topic ?? "",
+      buyingStage: q.buying_stage,
+      priority: q.priority,
+      notes: q.notes ?? undefined,
+      createdAt: q.created_at,
+      updatedAt: q.updated_at,
+    }))
+    .sort((a, b) => {
+      const pa = (a.personaName ?? "").localeCompare(b.personaName ?? "");
+      if (pa !== 0) return pa;
+      const ta = a.topic.localeCompare(b.topic);
+      if (ta !== 0) return ta;
+      const sa =
+        (stageRank[String(a.buyingStage)] ?? 9) -
+        (stageRank[String(b.buyingStage)] ?? 9);
+      if (sa !== 0) return sa;
+      return (
+        (priorityRank[String(a.priority)] ?? 9) -
+        (priorityRank[String(b.priority)] ?? 9)
+      );
+    });
+
   const termMapped: TerminologyEntry[] = (terms ?? []).map((t) => ({
     id: t.id,
     tenantId,
@@ -99,8 +211,12 @@ export async function buildStructuredKnowledgeText(
 
   return formatTenantKnowledgeBlock({
     company: companyMapped,
+    industries: industryMapped,
+    capabilities: capabilityMapped,
     povs: povMapped,
     personas: personaMapped,
+    proofItems: proofMapped,
+    marketQuestions: questionsMapped,
     terminology: termMapped,
   });
 }

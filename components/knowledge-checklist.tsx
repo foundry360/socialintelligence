@@ -10,11 +10,17 @@ import {
 import { Check, ChevronDown, Plus } from "lucide-react";
 import {
   addCapability,
+  addIndustry,
+  addMarketQuestion,
   addPersona,
+  addProofItem,
   addTerminology,
   removeCapability,
+  removeIndustry,
+  removeMarketQuestion,
   removePersona,
   removePov,
+  removeProofItem,
   removeTerminology,
   updateCompanyProfile,
   upsertPov,
@@ -61,7 +67,38 @@ export type KnowledgeTerm = {
   definition: string | null;
 };
 
-type StepId = "profile" | "povs" | "capabilities" | "personas" | "terminology";
+export type KnowledgeIndustry = {
+  id: string;
+  name: string;
+  description: string | null;
+};
+
+export type KnowledgeProofItem = {
+  id: string;
+  proof_type: string;
+  title: string;
+  summary: string | null;
+};
+
+export type KnowledgeMarketQuestion = {
+  id: string;
+  question: string;
+  persona_id: string | null;
+  topic: string;
+  buying_stage: string;
+  priority: string;
+  notes: string | null;
+};
+
+type StepId =
+  | "profile"
+  | "industries"
+  | "capabilities"
+  | "personas"
+  | "questions"
+  | "povs"
+  | "proof"
+  | "terminology";
 
 type StepDef = {
   id: StepId;
@@ -69,6 +106,45 @@ type StepDef = {
   title: string;
   description: string;
 };
+
+const PROOF_TYPES: { value: string; label: string }[] = [
+  { value: "case_study", label: "Case study" },
+  { value: "customer_outcome", label: "Customer outcome" },
+  { value: "success_story", label: "Success story" },
+  { value: "certification", label: "Certification" },
+  { value: "award", label: "Award" },
+  { value: "partnership", label: "Partnership" },
+  { value: "relevant_experience", label: "Relevant experience" },
+  { value: "statistic", label: "Statistic" },
+  { value: "research", label: "Research" },
+  { value: "proprietary_framework", label: "Proprietary framework" },
+  { value: "testimonial", label: "Testimonial" },
+];
+
+function proofTypeLabel(value: string): string {
+  return PROOF_TYPES.find((t) => t.value === value)?.label ?? value;
+}
+
+const BUYING_STAGES: { value: string; label: string }[] = [
+  { value: "awareness", label: "Awareness" },
+  { value: "consideration", label: "Consideration" },
+  { value: "decision", label: "Decision" },
+  { value: "retention", label: "Retention" },
+];
+
+const QUESTION_PRIORITIES: { value: string; label: string }[] = [
+  { value: "high", label: "High" },
+  { value: "medium", label: "Medium" },
+  { value: "low", label: "Low" },
+];
+
+function buyingStageLabel(value: string): string {
+  return BUYING_STAGES.find((s) => s.value === value)?.label ?? value;
+}
+
+function priorityLabel(value: string): string {
+  return QUESTION_PRIORITIES.find((p) => p.value === value)?.label ?? value;
+}
 
 const STEPS: StepDef[] = [
   {
@@ -79,11 +155,11 @@ const STEPS: StepDef[] = [
       "Legal identity, positioning, and differentiators - the spine every answer and baseline builds from.",
   },
   {
-    id: "povs",
-    label: "Points of View",
-    title: "Capture Points of View",
+    id: "industries",
+    label: "Industries & Markets",
+    title: "Map Industries & Markets",
     description:
-      "Stances the company will defend. Clear POVs are what keep content from sounding generic.",
+      "Where the company competes and creates value - used to keep messaging market-true.",
   },
   {
     id: "capabilities",
@@ -98,6 +174,27 @@ const STEPS: StepDef[] = [
     title: "Describe Buyer Personas",
     description:
       "Who you speak to: titles, goals, and pains that shape messaging and content fit.",
+  },
+  {
+    id: "questions",
+    label: "Questions & Conversations",
+    title: "Capture Questions & Conversations",
+    description:
+      "Questions your market is actually asking. Organize by persona, topic, buying stage, and priority.",
+  },
+  {
+    id: "povs",
+    label: "Points of View",
+    title: "Capture Points of View",
+    description:
+      "Stances the company will defend. Clear POVs are what keep content from sounding generic.",
+  },
+  {
+    id: "proof",
+    label: "Proof & Evidence",
+    title: "Add Proof & Evidence",
+    description:
+      "Case studies, outcomes, certifications, awards, and other proof that makes claims believable.",
   },
   {
     id: "terminology",
@@ -322,15 +419,21 @@ function StepStatusIcon({
 
 export function KnowledgeChecklist({
   profile,
+  industries,
   povs,
   capabilities,
   personas,
+  marketQuestions,
+  proofItems,
   terms,
 }: {
   profile: KnowledgeProfile | null;
+  industries: KnowledgeIndustry[];
   povs: KnowledgePov[];
   capabilities: KnowledgeCapability[];
   personas: KnowledgePersona[];
+  marketQuestions: KnowledgeMarketQuestion[];
+  proofItems: KnowledgeProofItem[];
   terms: KnowledgeTerm[];
 }) {
   const completion: Record<StepId, boolean> = {
@@ -339,15 +442,24 @@ export function KnowledgeChecklist({
         profile?.legal_name?.trim() &&
         (profile?.summary?.trim() || profile?.positioning?.trim()),
     ),
+    industries: industries.length > 0,
     povs: povs.length > 0,
     capabilities: capabilities.length > 0,
     personas: personas.length > 0,
+    questions: marketQuestions.length > 0,
+    proof: proofItems.length > 0,
     terminology: terms.length > 0,
   };
 
   const summaries: Record<StepId, string | null> = {
     profile:
       profile?.display_name?.trim() || profile?.legal_name?.trim() || null,
+    industries:
+      industries.length === 0
+        ? null
+        : industries.length === 1
+          ? industries[0].name
+          : `${industries.length} industries`,
     povs:
       povs.length === 0
         ? null
@@ -366,6 +478,18 @@ export function KnowledgeChecklist({
         : personas.length === 1
           ? personas[0].name
           : `${personas.length} personas`,
+    questions:
+      marketQuestions.length === 0
+        ? null
+        : marketQuestions.length === 1
+          ? marketQuestions[0].question
+          : `${marketQuestions.length} questions`,
+    proof:
+      proofItems.length === 0
+        ? null
+        : proofItems.length === 1
+          ? proofItems[0].title
+          : `${proofItems.length} proof items`,
     terminology:
       terms.length === 0
         ? null
@@ -402,6 +526,9 @@ export function KnowledgeChecklist({
     case "profile":
       panel = <ProfilePanel profile={profile} nav={nav} />;
       break;
+    case "industries":
+      panel = <IndustriesPanel industries={industries} nav={nav} />;
+      break;
     case "povs":
       panel = <PovsPanel povs={povs} nav={nav} />;
       break;
@@ -410,6 +537,18 @@ export function KnowledgeChecklist({
       break;
     case "personas":
       panel = <PersonasPanel personas={personas} nav={nav} />;
+      break;
+    case "questions":
+      panel = (
+        <QuestionsPanel
+          questions={marketQuestions}
+          personas={personas}
+          nav={nav}
+        />
+      );
+      break;
+    case "proof":
+      panel = <ProofPanel proofItems={proofItems} nav={nav} />;
       break;
     case "terminology":
       panel = <TerminologyPanel terms={terms} nav={nav} />;
@@ -420,8 +559,8 @@ export function KnowledgeChecklist({
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
-      <aside className="flex w-full max-w-sm shrink-0 flex-col border-r border-border bg-white dark:bg-surface sm:max-w-md lg:w-[26rem] lg:max-w-[26rem]">
-        <div className="border-b border-border px-5 py-5">
+      <aside className="flex w-full max-w-sm shrink-0 flex-col bg-white dark:bg-surface sm:max-w-md lg:w-[26rem] lg:max-w-[26rem]">
+        <div className="px-5 py-5">
           <h1 className="text-lg font-semibold tracking-tight">
             Structured Knowledge
           </h1>
@@ -491,38 +630,35 @@ function WebsiteUrlsField({ initialUrls }: { initialUrls: string[] }) {
   const [urls, setUrls] = useState(initialUrls.length > 0 ? initialUrls : [""]);
 
   return (
-    <div>
-      <p className={labelClass}>Website URL</p>
-      <div className="mt-1 space-y-2">
-        {urls.map((url, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <input
-              name="website_urls"
-              type="text"
-              placeholder="https://"
-              className={`${inputClass} mt-0`}
-              value={url}
-              onChange={(event) => {
-                const next = [...urls];
-                next[index] = event.target.value;
-                setUrls(next);
-              }}
-            />
-            {index === urls.length - 1 ? (
-              <button
-                type="button"
-                onClick={() => setUrls([...urls, ""])}
-                aria-label="Add website URL"
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-hover"
-              >
-                <Plus className="h-4 w-4" aria-hidden />
-              </button>
-            ) : (
-              <span className="inline-flex h-9 w-9 shrink-0" aria-hidden />
-            )}
-          </div>
-        ))}
-      </div>
+    <div className="mt-1 space-y-2">
+      {urls.map((url, index) => (
+        <div key={index} className="flex items-center gap-2">
+          <input
+            name="website_urls"
+            type="text"
+            placeholder="https://"
+            className={`${inputClass} mt-0`}
+            value={url}
+            onChange={(event) => {
+              const next = [...urls];
+              next[index] = event.target.value;
+              setUrls(next);
+            }}
+          />
+          {index === urls.length - 1 ? (
+            <button
+              type="button"
+              onClick={() => setUrls([...urls, ""])}
+              aria-label="Add website URL"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-hover"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+            </button>
+          ) : (
+            <span className="inline-flex h-9 w-9 shrink-0" aria-hidden />
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -543,65 +679,78 @@ function ProfilePanel({
 
   return (
     <div className="max-w-4xl">
-      <form action={updateCompanyProfile} className={`grid gap-3 ${cardClass}`}>
-        <p className="text-sm font-medium">Company Profile</p>
-        <label className={labelClass}>
-          Legal name
-          <input
-            name="legal_name"
-            className={inputClass}
-            defaultValue={profile?.legal_name ?? ""}
-            required
-          />
-        </label>
-        <label className={labelClass}>
-          Display name
-          <input
-            name="display_name"
-            className={inputClass}
-            defaultValue={profile?.display_name ?? ""}
-            required
-          />
-        </label>
-        <label className={labelClass}>
-          Tagline
-          <input
-            name="tagline"
-            className={inputClass}
-            defaultValue={profile?.tagline ?? ""}
-          />
-        </label>
-        <label className={labelClass}>
-          Summary
-          <AutoGrowTextarea
-            name="summary"
-            rows={3}
-            className={inputClass}
-            defaultValue={profile?.summary ?? ""}
-          />
-        </label>
-        <label className={labelClass}>
-          Positioning
-          <AutoGrowTextarea
-            name="positioning"
-            rows={3}
-            className={inputClass}
-            defaultValue={profile?.positioning ?? ""}
-          />
-        </label>
-        <label className={labelClass}>
-          Differentiators (one per line)
-          <AutoGrowTextarea
-            name="differentiators"
-            rows={3}
-            className={inputClass}
-            defaultValue={(profile?.differentiators ?? []).join("\n")}
-          />
-        </label>
-        <WebsiteUrlsField initialUrls={initialUrls} />
+      <form action={updateCompanyProfile} className="grid gap-4">
+        <div className={`grid gap-3 ${cardClass}`}>
+          <p className="text-sm font-medium">Identity</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className={labelClass}>
+              Legal name
+              <input
+                name="legal_name"
+                className={inputClass}
+                defaultValue={profile?.legal_name ?? ""}
+                required
+              />
+            </label>
+            <label className={labelClass}>
+              Display name
+              <input
+                name="display_name"
+                className={inputClass}
+                defaultValue={profile?.display_name ?? ""}
+                required
+              />
+            </label>
+          </div>
+          <label className={labelClass}>
+            Tagline
+            <input
+              name="tagline"
+              className={inputClass}
+              defaultValue={profile?.tagline ?? ""}
+            />
+          </label>
+        </div>
+
+        <div className={`grid gap-3 ${cardClass}`}>
+          <p className="text-sm font-medium">Positioning</p>
+          <label className={labelClass}>
+            Summary
+            <AutoGrowTextarea
+              name="summary"
+              rows={3}
+              className={inputClass}
+              defaultValue={profile?.summary ?? ""}
+            />
+          </label>
+          <label className={labelClass}>
+            Positioning
+            <AutoGrowTextarea
+              name="positioning"
+              rows={3}
+              className={inputClass}
+              defaultValue={profile?.positioning ?? ""}
+            />
+          </label>
+          <label className={labelClass}>
+            Differentiators (one per line)
+            <AutoGrowTextarea
+              name="differentiators"
+              rows={3}
+              className={inputClass}
+              defaultValue={(profile?.differentiators ?? []).join("\n")}
+            />
+          </label>
+        </div>
+
+        <div className={`grid gap-3 ${cardClass}`}>
+          <p className="text-sm font-medium">Websites</p>
+          <WebsiteUrlsField initialUrls={initialUrls} />
+        </div>
+
         <button
           type="submit"
-          className="mt-2 w-fit rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground"
+          className="w-fit rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground"
         >
           Save
         </button>
@@ -1034,6 +1183,417 @@ function TerminologyPanel({
             </ul>
           ) : (
             <p className="mt-3 text-sm text-muted">No terminology yet.</p>
+          )}
+        </div>
+        <StepNavButtons {...nav} />
+      </div>
+    </div>
+  );
+}
+
+function IndustriesPanel({
+  industries,
+  nav,
+}: {
+  industries: KnowledgeIndustry[];
+  nav: StepNavProps;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  return (
+    <div className={twoColGrid}>
+      <form action={addIndustry} className={`grid h-fit gap-2 ${cardClass}`}>
+        <p className="text-sm font-medium">Add Industry or Market</p>
+        <input
+          name="name"
+          placeholder="Industry or market name"
+          className={inputClass}
+          required
+        />
+        <AutoGrowTextarea
+          name="description"
+          placeholder="Description (optional)"
+          rows={2}
+          className={inputClass}
+        />
+        <button type="submit" className={saveBtnFullClass}>
+          Save
+        </button>
+      </form>
+      <div>
+        <div className={cardClass}>
+          <p className="text-sm font-medium">Saved Industries & Markets</p>
+          {industries.length > 0 ? (
+            <ul className="mt-3 space-y-2">
+              {industries.map((item) => (
+                <li key={item.id}>
+                  <SavedAccordion
+                    title={item.name}
+                    subtitle={item.description ?? undefined}
+                    open={openId === item.id}
+                    onToggle={() =>
+                      setOpenId((current) =>
+                        current === item.id ? null : item.id,
+                      )
+                    }
+                  >
+                    <form
+                      key={`${item.id}-${item.name}-${item.description ?? ""}`}
+                      action={addIndustry}
+                      className="grid gap-2"
+                    >
+                      <input type="hidden" name="id" value={item.id} />
+                      <label className={labelClass}>
+                        Name
+                        <input
+                          name="name"
+                          className={inputClass}
+                          defaultValue={item.name}
+                          required
+                        />
+                      </label>
+                      <label className={labelClass}>
+                        Description
+                        <AutoGrowTextarea
+                          name="description"
+                          rows={3}
+                          className={inputClass}
+                          defaultValue={item.description ?? ""}
+                        />
+                      </label>
+                      <AccordionEditActions removeAction={removeIndustry} />
+                    </form>
+                  </SavedAccordion>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-muted">No industries yet.</p>
+          )}
+        </div>
+        <StepNavButtons {...nav} />
+      </div>
+    </div>
+  );
+}
+
+function QuestionsPanel({
+  questions,
+  personas,
+  nav,
+}: {
+  questions: KnowledgeMarketQuestion[];
+  personas: KnowledgePersona[];
+  nav: StepNavProps;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const personaName = (id: string | null) =>
+    personas.find((p) => p.id === id)?.name ?? "General";
+
+  const sorted = [...questions].sort((a, b) => {
+    const pa = personaName(a.persona_id).localeCompare(
+      personaName(b.persona_id),
+    );
+    if (pa !== 0) return pa;
+    const ta = a.topic.localeCompare(b.topic);
+    if (ta !== 0) return ta;
+    const stageOrder = ["awareness", "consideration", "decision", "retention"];
+    const sa =
+      stageOrder.indexOf(a.buying_stage) - stageOrder.indexOf(b.buying_stage);
+    if (sa !== 0) return sa;
+    const priorityOrder = ["high", "medium", "low"];
+    return (
+      priorityOrder.indexOf(a.priority) - priorityOrder.indexOf(b.priority)
+    );
+  });
+
+  return (
+    <div className={twoColGrid}>
+      <form
+        action={addMarketQuestion}
+        className={`grid h-fit gap-2 ${cardClass}`}
+      >
+        <p className="text-sm font-medium">Add Market Question</p>
+        <AutoGrowTextarea
+          name="question"
+          placeholder="What should healthcare organizations do about AI governance?"
+          rows={3}
+          className={inputClass}
+          required
+        />
+        <label className={labelClass}>
+          Persona
+          <select name="persona_id" className={inputClass} defaultValue="">
+            <option value="">General / not tied</option>
+            {personas.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <input
+          name="topic"
+          placeholder="Topic (e.g. AI governance)"
+          className={inputClass}
+        />
+        <label className={labelClass}>
+          Buying stage
+          <select
+            name="buying_stage"
+            className={inputClass}
+            defaultValue="awareness"
+          >
+            {BUYING_STAGES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={labelClass}>
+          Priority
+          <select name="priority" className={inputClass} defaultValue="medium">
+            {QUESTION_PRIORITIES.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <AutoGrowTextarea
+          name="notes"
+          placeholder="Notes (optional)"
+          rows={2}
+          className={inputClass}
+        />
+        <button type="submit" className={saveBtnFullClass}>
+          Save
+        </button>
+      </form>
+      <div>
+        <div className={cardClass}>
+          <p className="text-sm font-medium">Saved Questions & Conversations</p>
+          <p className="mt-1 text-xs text-muted">
+            Sorted by persona → topic → buying stage → priority
+          </p>
+          {sorted.length > 0 ? (
+            <ul className="mt-3 space-y-2">
+              {sorted.map((item) => (
+                <li key={item.id}>
+                  <SavedAccordion
+                    title={item.question}
+                    subtitle={`${personaName(item.persona_id)} · ${
+                      item.topic || "General"
+                    } · ${buyingStageLabel(item.buying_stage)} · ${priorityLabel(
+                      item.priority,
+                    )}`}
+                    open={openId === item.id}
+                    onToggle={() =>
+                      setOpenId((current) =>
+                        current === item.id ? null : item.id,
+                      )
+                    }
+                  >
+                    <form
+                      key={`${item.id}-${item.question}-${item.persona_id}-${item.topic}-${item.buying_stage}-${item.priority}`}
+                      action={addMarketQuestion}
+                      className="grid gap-2"
+                    >
+                      <input type="hidden" name="id" value={item.id} />
+                      <label className={labelClass}>
+                        Question
+                        <AutoGrowTextarea
+                          name="question"
+                          rows={3}
+                          className={inputClass}
+                          defaultValue={item.question}
+                          required
+                        />
+                      </label>
+                      <label className={labelClass}>
+                        Persona
+                        <select
+                          name="persona_id"
+                          className={inputClass}
+                          defaultValue={item.persona_id ?? ""}
+                        >
+                          <option value="">General / not tied</option>
+                          {personas.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className={labelClass}>
+                        Topic
+                        <input
+                          name="topic"
+                          className={inputClass}
+                          defaultValue={item.topic}
+                        />
+                      </label>
+                      <label className={labelClass}>
+                        Buying stage
+                        <select
+                          name="buying_stage"
+                          className={inputClass}
+                          defaultValue={item.buying_stage}
+                        >
+                          {BUYING_STAGES.map((s) => (
+                            <option key={s.value} value={s.value}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className={labelClass}>
+                        Priority
+                        <select
+                          name="priority"
+                          className={inputClass}
+                          defaultValue={item.priority}
+                        >
+                          {QUESTION_PRIORITIES.map((p) => (
+                            <option key={p.value} value={p.value}>
+                              {p.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className={labelClass}>
+                        Notes
+                        <AutoGrowTextarea
+                          name="notes"
+                          rows={2}
+                          className={inputClass}
+                          defaultValue={item.notes ?? ""}
+                        />
+                      </label>
+                      <AccordionEditActions
+                        removeAction={removeMarketQuestion}
+                      />
+                    </form>
+                  </SavedAccordion>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-muted">No questions yet.</p>
+          )}
+        </div>
+        <StepNavButtons {...nav} />
+      </div>
+    </div>
+  );
+}
+
+function ProofPanel({
+  proofItems,
+  nav,
+}: {
+  proofItems: KnowledgeProofItem[];
+  nav: StepNavProps;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  return (
+    <div className={twoColGrid}>
+      <form action={addProofItem} className={`grid h-fit gap-2 ${cardClass}`}>
+        <p className="text-sm font-medium">Add Proof Item</p>
+        <select
+          name="proof_type"
+          className={inputClass}
+          defaultValue="case_study"
+        >
+          {PROOF_TYPES.map((type) => (
+            <option key={type.value} value={type.value}>
+              {type.label}
+            </option>
+          ))}
+        </select>
+        <input
+          name="title"
+          placeholder="Title"
+          className={inputClass}
+          required
+        />
+        <AutoGrowTextarea
+          name="summary"
+          placeholder="Summary / details"
+          rows={3}
+          className={inputClass}
+        />
+        <button type="submit" className={saveBtnFullClass}>
+          Save
+        </button>
+      </form>
+      <div>
+        <div className={cardClass}>
+          <p className="text-sm font-medium">Saved Proof & Evidence</p>
+          {proofItems.length > 0 ? (
+            <ul className="mt-3 space-y-2">
+              {proofItems.map((item) => (
+                <li key={item.id}>
+                  <SavedAccordion
+                    title={item.title}
+                    subtitle={`${proofTypeLabel(item.proof_type)}${
+                      item.summary ? ` · ${item.summary}` : ""
+                    }`}
+                    open={openId === item.id}
+                    onToggle={() =>
+                      setOpenId((current) =>
+                        current === item.id ? null : item.id,
+                      )
+                    }
+                  >
+                    <form
+                      key={`${item.id}-${item.proof_type}-${item.title}`}
+                      action={addProofItem}
+                      className="grid gap-2"
+                    >
+                      <input type="hidden" name="id" value={item.id} />
+                      <label className={labelClass}>
+                        Type
+                        <select
+                          name="proof_type"
+                          className={inputClass}
+                          defaultValue={item.proof_type}
+                        >
+                          {PROOF_TYPES.map((type) => (
+                            <option key={type.value} value={type.value}>
+                              {type.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className={labelClass}>
+                        Title
+                        <input
+                          name="title"
+                          className={inputClass}
+                          defaultValue={item.title}
+                          required
+                        />
+                      </label>
+                      <label className={labelClass}>
+                        Summary
+                        <AutoGrowTextarea
+                          name="summary"
+                          rows={3}
+                          className={inputClass}
+                          defaultValue={item.summary ?? ""}
+                        />
+                      </label>
+                      <AccordionEditActions removeAction={removeProofItem} />
+                    </form>
+                  </SavedAccordion>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-muted">No proof items yet.</p>
           )}
         </div>
         <StepNavButtons {...nav} />

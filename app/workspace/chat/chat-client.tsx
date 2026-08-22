@@ -645,7 +645,7 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
                         />
                         <input
                           type="checkbox"
-                          className="mt-0.5 size-[16px] shrink-0 accent-accent"
+                          className="mt-0.5 size-[18px] shrink-0 rounded-[6px] accent-accent"
                           checked={checked}
                           onChange={() => toggleSource(s.id)}
                         />

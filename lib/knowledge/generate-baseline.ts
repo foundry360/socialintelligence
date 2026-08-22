@@ -1,16 +1,9 @@
 import "server-only";
 
-import {
-  buildStructuredKnowledgeText,
-  retrieveEvidenceChunks,
-} from "@/lib/knowledge/context";
-import { clipToSentenceBounds } from "@/lib/knowledge/chunk";
+import { buildStructuredKnowledgeText } from "@/lib/knowledge/context";
 import { getLLMProvider } from "@/lib/llm";
 import { loadPrompt } from "@/lib/prompts/load";
 import { createClient } from "@/lib/db/server";
-
-const BASELINE_EVIDENCE_QUERY =
-  "authority positioning expertise strengths weaknesses proof points case studies thought leadership gaps POV market perception trust credibility";
 
 export type GeneratedBaselinePayload = {
   summary: string;
@@ -31,7 +24,6 @@ type BaselineStructuredOutput = {
   povCoverageNotes: string;
   trustMixNotes: string;
   recommendedActions: string[];
-  citationIndexes: number[];
 };
 
 const baselineSchema = {
@@ -48,7 +40,6 @@ const baselineSchema = {
       povCoverageNotes: { type: "string" },
       trustMixNotes: { type: "string" },
       recommendedActions: { type: "array", items: { type: "string" } },
-      citationIndexes: { type: "array", items: { type: "integer" } },
     },
     required: [
       "summary",
@@ -58,78 +49,101 @@ const baselineSchema = {
       "povCoverageNotes",
       "trustMixNotes",
       "recommendedActions",
-      "citationIndexes",
     ],
   },
 } as const;
 
-function mapCitationIndexes(
-  indexes: number[],
-  sourceIdsByIndex: string[],
-): string[] {
-  const out = new Set<string>();
-  for (const index of indexes) {
-    const sourceId = sourceIdsByIndex[index - 1];
-    if (sourceId) out.add(sourceId);
-  }
-  return [...out];
+export async function isKnowledgeSpineComplete(tenantId: string): Promise<boolean> {
+  const supabase = await createClient();
+
+  const [
+    { data: profile },
+    { count: industryCount },
+    { count: capabilityCount },
+    { count: personaCount },
+    { count: questionCount },
+    { count: povCount },
+    { count: proofCount },
+    { count: termCount },
+  ] = await Promise.all([
+    supabase
+      .from("company_profiles")
+      .select("display_name, legal_name, summary, positioning")
+      .eq("tenant_id", tenantId)
+      .maybeSingle(),
+    supabase
+      .from("industries")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null),
+    supabase
+      .from("capabilities")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null),
+    supabase
+      .from("personas")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null),
+    supabase
+      .from("market_questions")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null),
+    supabase
+      .from("points_of_view")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null),
+    supabase
+      .from("proof_items")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null),
+    supabase
+      .from("terminology_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .is("deleted_at", null),
+  ]);
+
+  const profileDone = Boolean(
+    profile?.display_name?.trim() &&
+      profile?.legal_name?.trim() &&
+      (profile?.summary?.trim() || profile?.positioning?.trim()),
+  );
+
+  return (
+    profileDone &&
+    (industryCount ?? 0) > 0 &&
+    (capabilityCount ?? 0) > 0 &&
+    (personaCount ?? 0) > 0 &&
+    (questionCount ?? 0) > 0 &&
+    (povCount ?? 0) > 0 &&
+    (proofCount ?? 0) > 0 &&
+    (termCount ?? 0) > 0
+  );
 }
 
 export async function generateAuthorityBaselineDraft(
   tenantId: string,
+  options: { requireSpineComplete?: boolean } = {},
 ): Promise<GeneratedBaselinePayload> {
-  const supabase = await createClient();
-
-  const [{ data: sources }, structured, chunks] = await Promise.all([
-    supabase
-      .from("knowledge_sources")
-      .select("id, title, source_type, url, summary")
-      .eq("tenant_id", tenantId)
-      .eq("evidence_status", "accepted")
-      .neq("sensitivity", "confidential")
-      .is("deleted_at", null)
-      .order("updated_at", { ascending: false })
-      .limit(40),
-    buildStructuredKnowledgeText(tenantId),
-    retrieveEvidenceChunks(tenantId, BASELINE_EVIDENCE_QUERY, 16),
-  ]);
-
-  if (chunks.length === 0 && !(sources?.length ?? 0)) {
-    throw new Error(
-      "Add accepted evidence sources in My Library before generating a baseline.",
-    );
+  const requireSpineComplete = options.requireSpineComplete ?? true;
+  if (requireSpineComplete) {
+    const spineComplete = await isKnowledgeSpineComplete(tenantId);
+    if (!spineComplete) {
+      throw new Error(
+        "Complete all Knowledge categories before generating a baseline.",
+      );
+    }
   }
 
-  const catalogBlock =
-    (sources ?? []).length > 0
-      ? (sources ?? [])
-          .map((s) => {
-            const summary = (s.summary ?? "").trim();
-            const urlPart = s.url ? ` url="${s.url}"` : "";
-            return `- [${s.id}] ${s.title} (${s.source_type})${urlPart}${
-              summary ? `\n  summary: ${summary}` : ""
-            }`;
-          })
-          .join("\n")
-      : "";
-
-  const sourceIdsByIndex = chunks.map((c) => c.sourceId);
-
-  const evidenceBlock = chunks
-    .map((c, i) => {
-      const kind = c.sourceType === "url" ? "website" : c.sourceType || "source";
-      const urlPart = c.sourceUrl ? ` url="${c.sourceUrl}"` : "";
-      const excerpt = clipToSentenceBounds(c.content, { maxChars: 700 });
-      return `[#${i + 1} source_id="${c.sourceId}" kind=${kind} title="${c.sourceTitle}"${urlPart}]\n${excerpt}`;
-    })
-    .join("\n\n");
-
-  const acceptedEvidence = [
-    catalogBlock ? `### Source catalog\n${catalogBlock}` : "",
-    evidenceBlock ? `### Retrieved excerpts\n${evidenceBlock}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+  const structured = await buildStructuredKnowledgeText(tenantId);
+  if (!structured.trim()) {
+    throw new Error("Structured knowledge is empty.");
+  }
 
   const prompt = await loadPrompt("authority-baseline", 1);
   const llm = getLLMProvider("claude");
@@ -139,9 +153,8 @@ export async function generateAuthorityBaselineDraft(
       channels: {
         systemInstructions: prompt.body,
         tenantKnowledge: structured,
-        acceptedEvidence,
         userInput:
-          "Generate the Authority Baseline v1 draft for this tenant. Be specific and cite evidence item numbers in citationIndexes.",
+          "Generate the Authority Baseline draft from the structured tenant knowledge only.",
       },
       temperature: 0.2,
       maxTokens: 4096,
@@ -155,11 +168,6 @@ export async function generateAuthorityBaselineDraft(
     baselineSchema,
   );
 
-  const citationSourceIds = mapCitationIndexes(
-    data.citationIndexes ?? [],
-    sourceIdsByIndex,
-  );
-
   return {
     summary: String(data.summary ?? "").trim(),
     strengths: (data.strengths ?? []).map((s) => String(s).trim()).filter(Boolean),
@@ -170,6 +178,6 @@ export async function generateAuthorityBaselineDraft(
     recommendedActions: (data.recommendedActions ?? [])
       .map((s) => String(s).trim())
       .filter(Boolean),
-    citationSourceIds,
+    citationSourceIds: [],
   };
 }

@@ -6,7 +6,6 @@ import {
   BookOpen,
   LayoutDashboard,
   Library,
-  Shield,
   type LucideIcon,
 } from "lucide-react";
 
@@ -18,7 +17,6 @@ const links: {
 }[] = [
   { href: "/workspace", label: "Projects", icon: LayoutDashboard, exact: true },
   { href: "/workspace/knowledge", label: "Knowledge", icon: BookOpen },
-  { href: "/workspace/baseline", label: "Baseline", icon: Shield },
   { href: "/workspace/library", label: "My Library", icon: Library },
 ];
 

@@ -7,7 +7,6 @@ import {
   type ReactNode,
   type TextareaHTMLAttributes,
 } from "react";
-import { Check, ChevronDown, Plus } from "lucide-react";
 import {
   addCapability,
   addIndustry,
@@ -25,6 +24,8 @@ import {
   updateCompanyProfile,
   upsertPov,
 } from "@/app/workspace/actions";
+import { KnowledgeBaselineButton } from "@/components/knowledge-baseline-button";
+import { Check, ChevronDown, Plus } from "lucide-react";
 
 export type KnowledgeProfile = {
   legal_name: string | null;
@@ -426,6 +427,8 @@ export function KnowledgeChecklist({
   marketQuestions,
   proofItems,
   terms,
+  canEdit,
+  hasBaseline,
 }: {
   profile: KnowledgeProfile | null;
   industries: KnowledgeIndustry[];
@@ -435,6 +438,8 @@ export function KnowledgeChecklist({
   marketQuestions: KnowledgeMarketQuestion[];
   proofItems: KnowledgeProofItem[];
   terms: KnowledgeTerm[];
+  canEdit: boolean;
+  hasBaseline: boolean;
 }) {
   const completion: Record<StepId, boolean> = {
     profile: Boolean(
@@ -611,6 +616,9 @@ export function KnowledgeChecklist({
             );
           })}
         </nav>
+        {canEdit && (doneCount === STEPS.length || hasBaseline) ? (
+          <KnowledgeBaselineButton hasBaseline={hasBaseline} />
+        ) : null}
       </aside>
 
       <div className="scrollbar-thread min-h-0 min-w-0 flex-1 overflow-y-auto bg-[#F3F8FC] py-8 pl-20 pr-6 dark:bg-background sm:pl-28 sm:pr-10 lg:pl-36">

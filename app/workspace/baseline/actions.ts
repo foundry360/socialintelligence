@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { requireWorkspaceContext } from "@/lib/auth/workspace";
-import { generateAuthorityBaselineDraft } from "@/lib/knowledge/generate-baseline";
+import {
+  generateAuthorityBaselineDraft,
+  isKnowledgeSpineComplete,
+} from "@/lib/knowledge/generate-baseline";
 import { createClient } from "@/lib/db/server";
 
 function canEdit(role: string): boolean {
@@ -16,21 +19,22 @@ export async function generateAuthorityBaseline(): Promise<{ id: string }> {
   }
 
   const supabase = await createClient();
-
-  const { count: acceptedCount } = await supabase
-    .from("knowledge_sources")
+  const spineComplete = await isKnowledgeSpineComplete(ctx.tenantId);
+  const { count: baselineCount } = await supabase
+    .from("authority_baselines")
     .select("id", { count: "exact", head: true })
     .eq("tenant_id", ctx.tenantId)
-    .eq("evidence_status", "accepted")
     .is("deleted_at", null);
 
-  if ((acceptedCount ?? 0) === 0) {
+  if (!spineComplete && (baselineCount ?? 0) === 0) {
     throw new Error(
-      "Accept at least one evidence source in My Library before generating a baseline.",
+      "Complete all Knowledge categories before generating a baseline.",
     );
   }
 
-  const draft = await generateAuthorityBaselineDraft(ctx.tenantId);
+  const draft = await generateAuthorityBaselineDraft(ctx.tenantId, {
+    requireSpineComplete: (baselineCount ?? 0) === 0,
+  });
 
   const { data: latest } = await supabase
     .from("authority_baselines")
@@ -68,6 +72,7 @@ export async function generateAuthorityBaseline(): Promise<{ id: string }> {
   }
 
   revalidatePath("/workspace/baseline");
+  revalidatePath("/workspace/knowledge");
   revalidatePath("/workspace/overview");
   return { id: data.id };
 }

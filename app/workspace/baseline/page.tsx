@@ -40,7 +40,6 @@ export default async function AuthorityBaselinePage({
     { count: proofCount },
     { count: termCount },
     { data: profile },
-    { count: acceptedCount },
   ] = await Promise.all([
     supabase
       .from("authority_baselines")
@@ -93,12 +92,6 @@ export default async function AuthorityBaselinePage({
       .select("display_name, legal_name, summary, positioning")
       .eq("tenant_id", ctx.tenantId)
       .maybeSingle(),
-    supabase
-      .from("knowledge_sources")
-      .select("id", { count: "exact", head: true })
-      .eq("tenant_id", ctx.tenantId)
-      .eq("evidence_status", "accepted")
-      .is("deleted_at", null),
   ]);
 
   const profileDone = Boolean(
@@ -117,12 +110,11 @@ export default async function AuthorityBaselinePage({
     (proofCount ?? 0) > 0,
     (termCount ?? 0) > 0,
   ].filter(Boolean).length;
-  const foundationReady =
-    spineDone === spineTotal && (acceptedCount ?? 0) > 0;
-
   const baselines = (baselineRows ?? []).map((row) =>
     mapBaselineListItem(row as AuthorityBaselineRow),
   );
+  const foundationReady =
+    spineDone === spineTotal || baselines.length > 0;
 
   return (
     <WorkspaceShell

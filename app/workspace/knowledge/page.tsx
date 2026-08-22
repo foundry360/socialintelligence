@@ -17,6 +17,9 @@ export default async function KnowledgePage() {
   const ctx = await requireWorkspaceContext();
   const supabase = await createClient();
 
+  const canEdit =
+    ctx.role === "owner" || ctx.role === "admin" || ctx.role === "editor";
+
   const [
     { data: profile },
     { data: industries },
@@ -26,6 +29,7 @@ export default async function KnowledgePage() {
     { data: marketQuestions },
     { data: proofItems },
     { data: terms },
+    { count: baselineCount },
   ] = await Promise.all([
     supabase
       .from("company_profiles")
@@ -78,6 +82,11 @@ export default async function KnowledgePage() {
       .eq("tenant_id", ctx.tenantId)
       .is("deleted_at", null)
       .order("preferred_term"),
+    supabase
+      .from("authority_baselines")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", ctx.tenantId)
+      .is("deleted_at", null),
   ]);
 
   return (
@@ -101,6 +110,8 @@ export default async function KnowledgePage() {
         }
         proofItems={(proofItems as KnowledgeProofItem[] | null) ?? []}
         terms={(terms as KnowledgeTerm[] | null) ?? []}
+        canEdit={canEdit}
+        hasBaseline={(baselineCount ?? 0) > 0}
       />
     </WorkspaceShell>
   );

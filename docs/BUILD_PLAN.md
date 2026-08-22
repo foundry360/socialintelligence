@@ -24,9 +24,9 @@ Phase 6  Harden & productize
 
 ## Kona Kai Stage 1 content pack (non-engineering)
 
-- Positioning draft, 5–10 capabilities, 3–5 personas
-- 5–10 explicit POVs
-- 10–20 best evidence docs (cases, frameworks, flagship articles)
+- Positioning draft, 5-10 capabilities, 3-5 personas
+- 5-10 explicit POVs
+- 10-20 best evidence docs (cases, frameworks, flagship articles)
 - Optional: key public URLs
 
 ADRs: [DECISIONS.md](./DECISIONS.md) (ADR-007, ADR-008).

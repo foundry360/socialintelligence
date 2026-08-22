@@ -286,7 +286,7 @@ function SaveToNoteModal({
             <button
               type="submit"
               disabled={pending}
-              className="rounded-full bg-[#99C8FF] px-5 py-2 text-sm font-medium text-zinc-900 disabled:opacity-40"
+              className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground disabled:opacity-40"
             >
               {pending ? "Saving…" : "Save as source"}
             </button>

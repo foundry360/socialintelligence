@@ -21,7 +21,7 @@ export async function createClient() {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // Called from a Server Component without mutable cookies — ignore.
+          // Called from a Server Component without mutable cookies - ignore.
         }
       },
     },

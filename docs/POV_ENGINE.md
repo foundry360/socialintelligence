@@ -2,7 +2,7 @@
 
 ## Role
 
-The POV engine is proprietary differentiation. It answers what the tenant **believes**, **disagrees with**, and **will say** on a topic — independent of any model vendor.
+The POV engine is proprietary differentiation. It answers what the tenant **believes**, **disagrees with**, and **will say** on a topic - independent of any model vendor.
 
 ## Structured model
 

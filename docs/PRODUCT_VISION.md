@@ -2,7 +2,7 @@
 
 ## One-liner
 
-An AI system that decides **what a company should be known for**, finds timely opportunities to prove that expertise, forms a differentiated point of view, and turns insight into authoritative content — not generic AI posts.
+An AI system that decides **what a company should be known for**, finds timely opportunities to prove that expertise, forms a differentiated point of view, and turns insight into authoritative content - not generic AI posts.
 
 ## Why it exists
 
@@ -14,7 +14,7 @@ Companies need continuous topical authority across LinkedIn, web content, FAQs, 
 
 > What do we actually know and believe, where are we strong or weak, and what must improve before we speak with authority?
 
-**Ongoing (content ops — after baseline + messaging plan):**
+**Ongoing (content ops - after baseline + messaging plan):**
 
 > What should we be talking about right now, why, what is our unique perspective, and what content should we create?
 

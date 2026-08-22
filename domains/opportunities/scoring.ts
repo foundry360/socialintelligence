@@ -1,7 +1,7 @@
 import type { OpportunityScoreBreakdown } from "@/domains/opportunities/types";
 import type { EditorialScoreBreakdown } from "@/domains/editorial/types";
 
-/** Default weights — sum to 1.0. Tenant overrides later. */
+/** Default weights - sum to 1.0. Tenant overrides later. */
 export const DEFAULT_OPPORTUNITY_WEIGHTS = {
   relevance: 0.18,
   audienceFit: 0.12,

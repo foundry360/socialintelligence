@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Social Intelligence",
   description:
-    "Thought Leadership Intelligence OS — knowledge-first authority platform",
+    "Thought Leadership Intelligence OS - knowledge-first authority platform",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -14,6 +14,11 @@ export async function updateCompanyProfile(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  const website_urls = formData
+    .getAll("website_urls")
+    .map((v) => String(v).trim())
+    .filter(Boolean);
+
   const { error } = await supabase
     .from("company_profiles")
     .update({
@@ -23,7 +28,8 @@ export async function updateCompanyProfile(formData: FormData) {
       summary: String(formData.get("summary") ?? "").trim(),
       positioning: String(formData.get("positioning") ?? "").trim(),
       differentiators,
-      website_url: String(formData.get("website_url") ?? "").trim() || null,
+      website_urls,
+      website_url: website_urls[0] ?? null,
     })
     .eq("tenant_id", ctx.tenantId);
 
@@ -54,7 +60,11 @@ export async function upsertPov(formData: FormData) {
   };
 
   const { error } = id
-    ? await supabase.from("points_of_view").update(payload).eq("id", id)
+    ? await supabase
+        .from("points_of_view")
+        .update(payload)
+        .eq("id", id)
+        .eq("tenant_id", ctx.tenantId)
     : await supabase.from("points_of_view").insert(payload);
 
   if (error) throw new Error(error.message);
@@ -64,11 +74,19 @@ export async function upsertPov(formData: FormData) {
 export async function addCapability(formData: FormData) {
   const ctx = await requireWorkspaceContext();
   const supabase = await createClient();
-  const { error } = await supabase.from("capabilities").insert({
+  const id = String(formData.get("id") ?? "").trim();
+  const payload = {
     tenant_id: ctx.tenantId,
     name: String(formData.get("name") ?? "").trim(),
     description: String(formData.get("description") ?? "").trim(),
-  });
+  };
+  const { error } = id
+    ? await supabase
+        .from("capabilities")
+        .update(payload)
+        .eq("id", id)
+        .eq("tenant_id", ctx.tenantId)
+    : await supabase.from("capabilities").insert(payload);
   if (error) throw new Error(error.message);
   revalidatePath("/workspace/knowledge");
 }
@@ -76,7 +94,8 @@ export async function addCapability(formData: FormData) {
 export async function addPersona(formData: FormData) {
   const ctx = await requireWorkspaceContext();
   const supabase = await createClient();
-  const { error } = await supabase.from("personas").insert({
+  const id = String(formData.get("id") ?? "").trim();
+  const payload = {
     tenant_id: ctx.tenantId,
     name: String(formData.get("name") ?? "").trim(),
     title_patterns: String(formData.get("title_patterns") ?? "")
@@ -92,7 +111,14 @@ export async function addPersona(formData: FormData) {
       .map((s) => s.trim())
       .filter(Boolean),
     language_notes: String(formData.get("language_notes") ?? "").trim() || null,
-  });
+  };
+  const { error } = id
+    ? await supabase
+        .from("personas")
+        .update(payload)
+        .eq("id", id)
+        .eq("tenant_id", ctx.tenantId)
+    : await supabase.from("personas").insert(payload);
   if (error) throw new Error(error.message);
   revalidatePath("/workspace/knowledge");
 }
@@ -100,7 +126,8 @@ export async function addPersona(formData: FormData) {
 export async function addTerminology(formData: FormData) {
   const ctx = await requireWorkspaceContext();
   const supabase = await createClient();
-  const { error } = await supabase.from("terminology_entries").insert({
+  const id = String(formData.get("id") ?? "").trim();
+  const payload = {
     tenant_id: ctx.tenantId,
     preferred_term: String(formData.get("preferred_term") ?? "").trim(),
     avoid_terms: String(formData.get("avoid_terms") ?? "")
@@ -108,7 +135,70 @@ export async function addTerminology(formData: FormData) {
       .map((s) => s.trim())
       .filter(Boolean),
     definition: String(formData.get("definition") ?? "").trim() || null,
-  });
+  };
+  const { error } = id
+    ? await supabase
+        .from("terminology_entries")
+        .update(payload)
+        .eq("id", id)
+        .eq("tenant_id", ctx.tenantId)
+    : await supabase.from("terminology_entries").insert(payload);
+  if (error) throw new Error(error.message);
+  revalidatePath("/workspace/knowledge");
+}
+
+export async function removePov(formData: FormData) {
+  const ctx = await requireWorkspaceContext();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) throw new Error("Missing POV id");
+  const { error } = await supabase
+    .from("points_of_view")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenantId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/workspace/knowledge");
+}
+
+export async function removeCapability(formData: FormData) {
+  const ctx = await requireWorkspaceContext();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) throw new Error("Missing capability id");
+  const { error } = await supabase
+    .from("capabilities")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenantId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/workspace/knowledge");
+}
+
+export async function removePersona(formData: FormData) {
+  const ctx = await requireWorkspaceContext();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) throw new Error("Missing persona id");
+  const { error } = await supabase
+    .from("personas")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenantId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/workspace/knowledge");
+}
+
+export async function removeTerminology(formData: FormData) {
+  const ctx = await requireWorkspaceContext();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) throw new Error("Missing terminology id");
+  const { error } = await supabase
+    .from("terminology_entries")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("tenant_id", ctx.tenantId);
   if (error) throw new Error(error.message);
   revalidatePath("/workspace/knowledge");
 }
@@ -489,7 +579,7 @@ export async function askKnowledgeChat(
           systemInstructions: [
             "You are the Knowledge Workspace analyst for a thought leadership OS.",
             "Ground answers in ACCEPTED EVIDENCE SOURCES first (including imported company website pages).",
-            "Structured tenant knowledge (profile/POVs) is supporting context — do not claim the website is unavailable if website evidence excerpts are present.",
+            "Structured tenant knowledge (profile/POVs) is supporting context - do not claim the website is unavailable if website evidence excerpts are present.",
             "When the user asks about 'our website' / homepage / site messaging, use evidence items marked kind=website and cite them.",
             "If website evidence is present, summarize from that evidence. Do not invent a disclaimer that website content is missing.",
             "Only say information is unavailable when neither evidence nor structured knowledge covers it.",

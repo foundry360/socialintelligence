@@ -8,7 +8,7 @@ First client: **Kona Kai Corp**.
 
 ## Status
 
-**Phase 1 — Platform spine** (in progress): Supabase auth/DB, RLS, Kona Kai seed, live Claude provider, workspace shell.
+**Phase 1 - Platform spine** (in progress): Supabase auth/DB, RLS, Kona Kai seed, live Claude provider, workspace shell.
 
 Knowledge-first sequence: see [`docs/BUILD_PLAN.md`](./docs/BUILD_PLAN.md) and [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
@@ -34,7 +34,7 @@ pnpm dev
 1. Create a Supabase project.
 2. Run SQL files in `supabase/migrations/` in order, then `supabase/seed.sql`.
 3. Enable Email auth.
-4. Create a user, then link them to Kona Kai (see seed file comments) or set `BOOTSTRAP_TENANT_SLUG=kona-kai` and sign up with an email you control — first membership auto-links when configured.
+4. Create a user, then link them to Kona Kai (see seed file comments) or set `BOOTSTRAP_TENANT_SLUG=kona-kai` and sign up with an email you control - first membership auto-links when configured.
 
 ## Docs
 

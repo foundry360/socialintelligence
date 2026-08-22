@@ -256,7 +256,7 @@ export function UserMenu({
                       onClick={() => setTheme(mode.value)}
                       className={`inline-flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs ${
                         active
-                          ? "bg-[#99C8FF] text-zinc-900"
+                          ? "bg-accent text-accent-foreground"
                           : "text-muted hover:bg-hover hover:text-foreground"
                       }`}
                     >

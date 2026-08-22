@@ -17,11 +17,15 @@ export function WorkspaceShell({
     <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
       <header className="z-40 shrink-0 border-b border-border bg-surface/95 backdrop-blur">
         <div className="flex items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6">
-          <div className="min-w-0 shrink-0">
-            <p className="text-xs tracking-wide text-muted">
-              Social Intelligence
+          <div className="flex min-w-0 shrink-0 items-center gap-2">
+            <p className="shrink-0 text-xl leading-none tracking-tight sm:text-2xl">
+              <span className="font-bold">X</span>
+              <span className="font-medium">2</span>
             </p>
-            <p className="truncate text-base font-semibold tracking-tight sm:text-lg">
+            <span className="shrink-0 text-muted" aria-hidden>
+              |
+            </span>
+            <p className="truncate text-sm font-semibold tracking-tight sm:text-base">
               {tenantName}
             </p>
           </div>

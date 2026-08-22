@@ -8,11 +8,11 @@ Curated knowledge → Authority Baseline → Messaging Plan → Content Ops
 
 Do **not** generate LinkedIn/content packages until an approved baseline and messaging plan exist for the tenant.
 
-Stage 1 UX is a **NotebookLM-style Knowledge Workspace** (sources + structured knowledge + grounded chat with citations). Durable outputs are Authority Baseline and Messaging Plan — not chat alone.
+Stage 1 UX is a **NotebookLM-style Knowledge Workspace** (sources + structured knowledge + grounded chat with citations). Durable outputs are Authority Baseline and Messaging Plan - not chat alone.
 
 ---
 
-## Phase 0 — Foundation ✅
+## Phase 0 - Foundation ✅
 
 - Repository, AGENTS.md, docs
 - Domain TypeScript models & interfaces
@@ -24,7 +24,7 @@ Stage 1 UX is a **NotebookLM-style Knowledge Workspace** (sources + structured k
 
 ---
 
-## Phase 1 — Platform spine ✅
+## Phase 1 - Platform spine ✅
 
 Make the app real enough to hold tenant knowledge safely.
 
@@ -42,9 +42,9 @@ Make the app real enough to hold tenant knowledge safely.
 
 ---
 
-## Phase 2 — Knowledge Workspace (“Notebook”) (current)
+## Phase 2 - Knowledge Workspace (“Notebook”) (current)
 
-NotebookLM-style core — sources in, grounded answers out.
+NotebookLM-style core - sources in, grounded answers out.
 
 **Deliverables**
 
@@ -61,7 +61,7 @@ NotebookLM-style core — sources in, grounded answers out.
 
 ---
 
-## Phase 3 — Authority Baseline
+## Phase 3 - Authority Baseline
 
 **Deliverables**
 
@@ -73,19 +73,19 @@ NotebookLM-style core — sources in, grounded answers out.
 
 ---
 
-## Phase 4 — Market alignment & messaging plan
+## Phase 4 - Market alignment & messaging plan
 
 **Deliverables**
 
 - `MessagingPlan` from approved baseline (+ optional light market notes as untrusted)
-- Priority topics, ownable POVs, pillars, say/don’t say, 30–90 day themes
+- Priority topics, ownable POVs, pillars, say/don’t say, 30-90 day themes
 - Human approval; plan becomes default context for later generation
 
 **Exit criteria:** Approved messaging plan linked to baseline v1.
 
 ---
 
-## Phase 5 — Content ops MVP
+## Phase 5 - Content ops MVP
 
 Only after baseline + plan exist.
 
@@ -100,7 +100,7 @@ Only after baseline + plan exist.
 
 ---
 
-## Phase 6 — Harden & productize
+## Phase 6 - Harden & productize
 
 - Better ingestion, re-embed on update, baseline refresh cadence
 - Multi-workspace/brands as needed

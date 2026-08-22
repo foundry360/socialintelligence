@@ -9,7 +9,7 @@ export interface OpportunityScoreBreakdown {
   commercialRelevance: number;
   searchAeoGeoValue: number;
   packagePotential: number;
-  /** Weighted 0–100 */
+  /** Weighted 0-100 */
   total: number;
 }
 

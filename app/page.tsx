@@ -12,7 +12,7 @@ export default function Home() {
         Social Intelligence
       </h1>
       <p className="text-lg text-muted">
-        Thought Leadership Intelligence OS — Phase 1 platform spine. Knowledge
+        Thought Leadership Intelligence OS - Phase 1 platform spine. Knowledge
         baseline before content generation.
       </p>
       <div className="flex gap-4 text-sm">

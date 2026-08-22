@@ -28,7 +28,7 @@ const CHAT_SYSTEM = [
   "- Write your own clear prose. Never paste or reconstruct evidence excerpts verbatim.",
   "- Never include slide titles, deck names, page numbers, dates, 'Confidential & Proprietary', footers, headers, or other document chrome.",
   "- Never dump bullet lists copied from a source; paraphrase into coherent recommendations.",
-  "- Cite after a claim with [n] using the evidence item number. Prefer a few precise citations over citing every sentence. Use different numbers when claims come from different evidence items — do not mark everything as [1].",
+  "- Cite after a claim with [n] using the evidence item number. Prefer a few precise citations over citing every sentence. Use different numbers when claims come from different evidence items - do not mark everything as [1].",
   "Write clear answers for a human reader with correct grammar and punctuation.",
   "Default to short prose paragraphs. When a list, comparison, steps, or structured data is clearer, you may use light Markdown only:",
   "- Prefer **bold** short section headings for plan/recommendation sections (not numbered lists of sections).",

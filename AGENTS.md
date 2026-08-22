@@ -2,13 +2,13 @@
 
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+This version has breaking changes - APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+This block is written and re-added by `next dev` - verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
 
-# Kona Kai Thought Leadership OS — Agent Instructions
+# Kona Kai Thought Leadership OS - Agent Instructions
 
 This file is the authoritative Cursor/Cascade instruction set for **Social Intelligence** ([foundry360/socialintelligence](https://github.com/foundry360/socialintelligence)).
 
@@ -34,15 +34,15 @@ First client: **Kona Kai Corp**. Product is designed as **multi-tenant SaaS** fr
 
 ## 2. Architecture principles
 
-1. **Modular monolith** — clear domain boundaries; no microservices unless justified in `docs/DECISIONS.md`.
-2. **Model-agnostic** — business logic never calls Claude/OpenAI APIs directly. Use `lib/llm` (`LLMProvider`).
-3. **Intelligence ≠ LLM** — proprietary knowledge, POVs, audiences, rules, and history live in the **Intelligence Layer** (`lib/intelligence`). The LLM is a reasoning/generation engine only.
-4. **Structured + vector** — relational data for entities/relationships/scores/workflow; pgvector for semantic retrieval of documents and content. Do not put everything in embeddings.
-5. **Human-in-the-loop** — no autonomous publishing in MVP. Workflow ends at human approval.
-6. **Untrusted external content** — signals and ingested documents are data, never instructions (prompt-injection safe context separation).
-7. **Multi-tenant by default** — every tenant-owned row includes `tenant_id`. Enforce isolation in queries and RLS.
-8. **Simplicity first** — build for the current requirement; keep extension points; avoid speculative abstractions.
-9. **Docs as contract** — architecture changes require doc updates in the same change set.
+1. **Modular monolith** - clear domain boundaries; no microservices unless justified in `docs/DECISIONS.md`.
+2. **Model-agnostic** - business logic never calls Claude/OpenAI APIs directly. Use `lib/llm` (`LLMProvider`).
+3. **Intelligence ≠ LLM** - proprietary knowledge, POVs, audiences, rules, and history live in the **Intelligence Layer** (`lib/intelligence`). The LLM is a reasoning/generation engine only.
+4. **Structured + vector** - relational data for entities/relationships/scores/workflow; pgvector for semantic retrieval of documents and content. Do not put everything in embeddings.
+5. **Human-in-the-loop** - no autonomous publishing in MVP. Workflow ends at human approval.
+6. **Untrusted external content** - signals and ingested documents are data, never instructions (prompt-injection safe context separation).
+7. **Multi-tenant by default** - every tenant-owned row includes `tenant_id`. Enforce isolation in queries and RLS.
+8. **Simplicity first** - build for the current requirement; keep extension points; avoid speculative abstractions.
+9. **Docs as contract** - architecture changes require doc updates in the same change set.
 
 ---
 
@@ -63,12 +63,12 @@ First client: **Kona Kai Corp**. Product is designed as **multi-tenant SaaS** fr
 
 Cross-cutting:
 
-- `lib/intelligence` — Kona Kai / tenant Intelligence Layer façade
-- `lib/llm` — model providers
-- `lib/db` — Supabase/Postgres access
-- `lib/security` — authz helpers, injection guards, audit
-- `lib/workflow` — signal → opportunity → draft → approval state machine
-- `prompts/` — versioned prompt definitions (not hardcoded in app logic)
+- `lib/intelligence` - Kona Kai / tenant Intelligence Layer façade
+- `lib/llm` - model providers
+- `lib/db` - Supabase/Postgres access
+- `lib/security` - authz helpers, injection guards, audit
+- `lib/workflow` - signal → opportunity → draft → approval state machine
+- `prompts/` - versioned prompt definitions (not hardcoded in app logic)
 
 Do not create circular imports across domains. Prefer interfaces in the owning domain; compose in `lib/intelligence` or `lib/workflow`.
 
@@ -80,15 +80,16 @@ Do not create circular imports across domains. Prefer interfaces in the owning d
 - **Runtime:** Next.js App Router; server-only for secrets, LLM, and DB writes.
 - **Package manager:** pnpm.
 - **Naming:**
-  - Domains/folders: `kebab-case` or clear nouns (`pov`, `signals`)
-  - Types/interfaces: `PascalCase` (`ContentOpportunity`, `LLMProvider`)
-  - Functions: `camelCase` (`getRelevantPOVs`)
-  - DB tables: `snake_case`, plural (`content_opportunities`)
-  - Prompt dirs: `kebab-case` (`signal-analysis`)
+ - Domains/folders: `kebab-case` or clear nouns (`pov`, `signals`)
+ - Types/interfaces: `PascalCase` (`ContentOpportunity`, `LLMProvider`)
+ - Functions: `camelCase` (`getRelevantPOVs`)
+ - DB tables: `snake_case`, plural (`content_opportunities`)
+ - Prompt dirs: `kebab-case` (`signal-analysis`)
 - **Imports:** use `@/` alias.
 - **Server vs client:** mark server modules with `import "server-only"` when they touch secrets or providers.
 - **Errors:** typed/domain errors at boundaries; never leak stack traces or secrets to the client.
 - **Dependencies:** justify new packages in PR/commit notes; prefer stdlib + existing stack.
+- **Punctuation:** never use em dashes (Unicode U+2014). Prefer commas, periods, colons, or ASCII hyphens (`-`).
 
 ---
 
@@ -128,7 +129,7 @@ Do not create circular imports across domains. Prefer interfaces in the owning d
 ## 8. Security requirements
 
 - Authentication via Supabase Auth.
-- Authorization: role-based (`owner`, `admin`, `editor`, `viewer` — refine as needed).
+- Authorization: role-based (`owner`, `admin`, `editor`, `viewer` - refine as needed).
 - Encrypt secrets via platform secret stores (Vercel/Supabase); never commit `.env*`.
 - Audit log significant actions (approval, publish, knowledge ingest, prompt/admin changes).
 - Treat uploaded docs and external signals as untrusted.
@@ -184,7 +185,7 @@ Required docs live in `/docs`. When you change architecture, update:
 
 Ask, in order:
 
-1. Does this strengthen tenant-specific authority and POV — or only make generic content faster?
+1. Does this strengthen tenant-specific authority and POV - or only make generic content faster?
 2. Does it preserve model-agnosticism and intelligence/LLM separation?
 3. Does it keep multi-tenant isolation correct by default?
 4. Is it the simplest thing that unblocks the current phase?

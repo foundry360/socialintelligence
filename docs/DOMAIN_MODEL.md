@@ -25,7 +25,7 @@ All tenant-owned entities include `tenantId` / `tenant_id` unless noted.
 | `ContentAsset` | Existing published or archived content |
 | `KnowledgeWorkspace` | NotebookLM-style workspace container (Phase 2) |
 
-## Authority & messaging (Phases 3–4)
+## Authority & messaging (Phases 3-4)
 
 | Entity | Description |
 |--------|-------------|
@@ -87,7 +87,7 @@ Analysis answers: what happened, why it matters, who cares, relevance, personas,
 
 ### Opportunity score dimensions
 
-Relevance, Audience fit, Authority, Differentiation, Timeliness, Commercial relevance, Search/AEO/GEO value, Content package potential → weighted total (0–100).
+Relevance, Audience fit, Authority, Differentiation, Timeliness, Commercial relevance, Search/AEO/GEO value, Content package potential → weighted total (0-100).
 
 ### Editorial score dimensions
 

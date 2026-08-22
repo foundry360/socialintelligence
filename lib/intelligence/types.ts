@@ -8,7 +8,7 @@ import type { UUID } from "@/domains/shared/types";
 
 /**
  * Tenant-scoped proprietary intelligence façade.
- * Implementations read structured + vector stores — never call LLM vendors directly.
+ * Implementations read structured + vector stores - never call LLM vendors directly.
  */
 export interface IntelligenceLayer {
   getCompanyContext(tenantId: UUID): Promise<CompanyProfile | null>;
@@ -65,7 +65,14 @@ export function formatTenantKnowledgeBlock(input: {
         `Positioning: ${input.company.positioning}`,
         `Summary: ${input.company.summary}`,
         `Differentiators: ${input.company.differentiators.join("; ")}`,
-      ].join("\n"),
+        input.company.websiteUrls?.length
+          ? `Websites: ${input.company.websiteUrls.join("; ")}`
+          : input.company.websiteUrl
+            ? `Website: ${input.company.websiteUrl}`
+            : null,
+      ]
+        .filter(Boolean)
+        .join("\n"),
     );
   }
 

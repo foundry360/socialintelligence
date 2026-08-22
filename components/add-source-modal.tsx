@@ -66,7 +66,7 @@ export function AddSourceButton({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#99C8FF] px-3.5 py-1.5 text-sm font-medium text-zinc-900 hover:brightness-95"
+          className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3.5 py-1.5 text-sm font-medium text-accent-foreground hover:brightness-95"
         >
           <Plus className="h-4 w-4" aria-hidden />
           Add sources
@@ -400,7 +400,7 @@ function AddSourceModal({ onClose }: { onClose: () => void }) {
             type="submit"
             form="add-source-form"
             disabled={pending || (mode === "upload" && !file)}
-            className="rounded-full bg-[#99C8FF] px-5 py-2 text-sm font-medium text-zinc-900 disabled:opacity-40"
+            className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-foreground disabled:opacity-40"
           >
             {pending
               ? mode === "upload"

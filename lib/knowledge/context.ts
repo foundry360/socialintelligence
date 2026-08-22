@@ -17,7 +17,7 @@ export async function buildStructuredKnowledgeText(
       supabase
         .from("company_profiles")
         .select(
-          "id, tenant_id, legal_name, display_name, tagline, summary, positioning, differentiators, website_url, created_at, updated_at",
+          "id, tenant_id, legal_name, display_name, tagline, summary, positioning, differentiators, website_url, website_urls, created_at, updated_at",
         )
         .eq("tenant_id", tenantId)
         .maybeSingle(),
@@ -52,6 +52,11 @@ export async function buildStructuredKnowledgeText(
         positioning: company.positioning,
         differentiators: (company.differentiators as string[]) ?? [],
         websiteUrl: company.website_url ?? undefined,
+        websiteUrls: Array.isArray(company.website_urls)
+          ? (company.website_urls as string[])
+          : company.website_url
+            ? [company.website_url]
+            : undefined,
         createdAt: company.created_at,
         updatedAt: company.updated_at,
       }
@@ -199,7 +204,7 @@ export async function retrieveEvidenceChunks(
       p_query: query,
       p_limit: limit,
     });
-    // RPC enforces is_tenant_member(auth.uid()) — service role has no uid, so this may fail.
+    // RPC enforces is_tenant_member(auth.uid()) - service role has no uid, so this may fail.
     // Ignore FTS failures and continue with direct chunk reads.
     if (ftsRows && ftsRows.length > 0) {
       const filtered = ftsRows.filter((row: { source_id: string }) =>

@@ -12,7 +12,7 @@ export interface EditorialScoreBreakdown {
   buyerQuestionFit: number;
   topicalAuthority: number;
   engagementReason: number;
-  /** Weighted 0–100 */
+  /** Weighted 0-100 */
   total: number;
 }
 

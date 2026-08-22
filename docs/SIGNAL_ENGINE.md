@@ -20,7 +20,7 @@ For each signal, produce structured `SignalAnalysis`:
 | whyItMatters | Why does it matter? |
 | affectedParties | Who does it affect? |
 | relevanceToTenant | Is it relevant? |
-| relevanceScore | 0–100 |
+| relevanceScore | 0-100 |
 | personas | Which buyers care? |
 | capabilities | Which offerings relate? |
 | povFit | Do we have a legitimate POV? |

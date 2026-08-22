@@ -3,7 +3,7 @@
 ## Definitions (working)
 
 - **AEO (Answer Engine Optimization):** structure content so AI/answer surfaces can cite clear, direct answers to real questions.
-- **GEO (Generative Engine Optimization):** strengthen entity clarity, topical depth, authority, and citation-worthiness in generative answers — not keyword stuffing.
+- **GEO (Generative Engine Optimization):** strengthen entity clarity, topical depth, authority, and citation-worthiness in generative answers - not keyword stuffing.
 
 ## What we optimize for
 

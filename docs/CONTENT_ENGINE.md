@@ -10,7 +10,7 @@ Derived from signal analysis + POVs + audiences + commercial fit.
 
 Includes: title, summary, scores, audiences, linked signal, linked POVs, recommended formats, rationale.
 
-### Scoring model (0–100 weighted)
+### Scoring model (0-100 weighted)
 
 | Dimension | Intent |
 |-----------|--------|

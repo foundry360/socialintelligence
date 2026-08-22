@@ -18,7 +18,7 @@ export function getSupabaseAnonKey(): string {
   return requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 }
 
-/** Service-role client — server only. Bypasses RLS. */
+/** Service-role client - server only. Bypasses RLS. */
 export function createServiceClient() {
   return createClient(
     getSupabaseUrl(),

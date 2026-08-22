@@ -29,11 +29,11 @@ pnpm exec supabase db reset  # local only
 - Authentication → Providers → Email enabled
 - For local/dev you may disable “Confirm email”
 - **URL configuration** (Authentication → URL configuration):
-  - Site URL: `http://localhost:3001` (or your deployed URL)
-  - Redirect URLs allowlist must include:
-    - `http://localhost:3001/auth/callback`
-    - `http://localhost:3001/auth/callback?next=/auth/update-password`
-    - `http://localhost:3001/**` (optional wildcard for local)
+ - Site URL: `http://localhost:3001` (or your deployed URL)
+ - Redirect URLs allowlist must include:
+ - `http://localhost:3001/auth/callback`
+ - `http://localhost:3001/auth/callback?next=/auth/update-password`
+ - `http://localhost:3001/**` (optional wildcard for local)
 - Password reset: `/login/forgot` → email link → `/auth/update-password`
 
 ## 4. Env
@@ -57,7 +57,7 @@ pnpm dev
 ```
 
 1. Open `/login` → sign up
-2. Visit `/workspace` — bootstrap attaches you as **owner** of Kona Kai
+2. Visit `/workspace` - bootstrap attaches you as **owner** of Kona Kai
 3. Confirm tenant + seed workspace/profile/POV count
 
 ## Exit criteria

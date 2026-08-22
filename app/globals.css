@@ -11,6 +11,8 @@
   --subtle: #f4f4f5;
   --primary: #18181b;
   --primary-foreground: #fafafa;
+  --accent: #2084c7;
+  --accent-foreground: #ffffff;
   --danger: #dc2626;
   --link: #0369a1;
   --warning-bg: #fffbeb;
@@ -22,13 +24,15 @@
 
 .dark {
   --background: #09090b;
-  --foreground: #fafafa;
+  --foreground: #e4e4e7;
   --surface: #18181b;
   --border: #3f3f46;
   --muted: #a1a1aa;
   --subtle: #27272a;
-  --primary: #fafafa;
+  --primary: #e4e4e7;
   --primary-foreground: #18181b;
+  --accent: #99c8ff;
+  --accent-foreground: #18181b;
   --danger: #f87171;
   --link: #38bdf8;
   --warning-bg: #422006;
@@ -47,6 +51,8 @@
   --color-subtle: var(--subtle);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-danger: var(--danger);
   --color-link: var(--link);
   --color-warning-bg: var(--warning-bg);

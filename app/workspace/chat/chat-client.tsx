@@ -564,7 +564,7 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
     <div
       className={`grid h-full min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden p-4 sm:p-6 xl:items-stretch ${gridCols}`}
     >
-      {/* Column 1 — Sources */}
+      {/* Column 1 - Sources */}
       <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface xl:h-full">
         {sourcesCollapsed ? (
           <div className="flex h-full flex-col items-center justify-end p-2">
@@ -645,7 +645,7 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
                         />
                         <input
                           type="checkbox"
-                          className="mt-0.5 size-[16px] shrink-0 accent-[#99C8FF]"
+                          className="mt-0.5 size-[16px] shrink-0 accent-accent"
                           checked={checked}
                           onChange={() => toggleSource(s.id)}
                         />
@@ -671,7 +671,7 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
         )}
       </aside>
 
-      {/* Column 2 — Thread + composer */}
+      {/* Column 2 - Thread + composer */}
       <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface xl:h-full">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
           <div>
@@ -735,7 +735,7 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
                 if (m.role === "user") {
                   return (
                     <div key={m.id} className="flex w-full justify-end">
-                      <div className="max-w-[85%] rounded-2xl rounded-br-md bg-[#99C8FF] px-3.5 py-2.5 text-left text-sm leading-5 text-zinc-900">
+                      <div className="max-w-[85%] rounded-2xl rounded-br-md bg-accent px-3.5 py-2.5 text-left text-sm leading-5 text-accent-foreground">
                         {m.content}
                       </div>
                     </div>
@@ -791,7 +791,7 @@ export function KnowledgeChat({ sources }: { sources: ChatSourceOption[] }) {
         )}
       </section>
 
-      {/* Column 3 — Citations for latest answer */}
+      {/* Column 3 - Citations for latest answer */}
       <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface xl:h-full">
         {citationsCollapsed ? (
           <div className="flex h-full flex-col items-center justify-end p-2">

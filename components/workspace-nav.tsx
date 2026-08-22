@@ -38,8 +38,8 @@ export function WorkspaceNav() {
             href={link.href}
             className={
               active
-                ? "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-foreground px-3 py-1.5 text-sm font-medium text-foreground"
-                : "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm text-muted hover:border-foreground/40 hover:text-foreground"
+                ? "inline-flex shrink-0 items-center gap-1.5 rounded-full border-[0.5px] border-foreground/40 px-3 py-1.5 text-sm font-medium text-foreground"
+                : "inline-flex shrink-0 items-center gap-1.5 rounded-full border-[0.5px] border-border px-3 py-1.5 text-sm text-muted hover:border-foreground/40 hover:text-foreground"
             }
           >
             <Icon className="h-3.5 w-3.5" aria-hidden />

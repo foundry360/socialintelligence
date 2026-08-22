@@ -1,6 +1,6 @@
 /**
  * Model-agnostic LLM contracts.
- * Domain code must depend on these types — never on vendor SDKs.
+ * Domain code must depend on these types - never on vendor SDKs.
  */
 
 export type LLMRole = "system" | "user" | "assistant";
@@ -17,10 +17,10 @@ export interface LLMContextChannels {
   tenantKnowledge?: string;
   /**
    * Accepted knowledge-base sources (notes, imported URLs).
-   * Trusted as curated evidence — NOT the same as externalUntrusted market signals.
+   * Trusted as curated evidence - NOT the same as externalUntrusted market signals.
    */
   acceptedEvidence?: string;
-  /** Market signals / raw web not yet accepted — untrusted. */
+  /** Market signals / raw web not yet accepted - untrusted. */
   externalUntrusted?: string;
   userInput?: string;
 }

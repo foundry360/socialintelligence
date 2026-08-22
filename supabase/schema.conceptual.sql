@@ -58,4 +58,4 @@
 --   enable RLS on all tenant-scoped tables
 --   policy: tenant_id in (select tenant_id from tenant_memberships where user_id = auth.uid())
 
-select 'conceptual schema only — see docs/DOMAIN_MODEL.md' as note;
+select 'conceptual schema only - see docs/DOMAIN_MODEL.md' as note;

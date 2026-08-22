@@ -12,7 +12,7 @@ export default function LoginPage() {
         <p className="text-sm text-muted">Social Intelligence</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Sign in</h1>
         <p className="mt-2 text-sm text-muted">
-          Phase 1 platform spine — email/password sign in.
+          Phase 1 platform spine - email/password sign in.
         </p>
       </div>
       <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>

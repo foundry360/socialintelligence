@@ -18,7 +18,7 @@ export default async function LibraryPage() {
       <WorkspacePageWide>
         <h1 className="text-2xl font-semibold tracking-tight">My Library</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
-          Placeholder — curated library views will live here. For now, add
+          Placeholder - curated library views will live here. For now, add
           sources from Chat with the + control.
         </p>
       </WorkspacePageWide>

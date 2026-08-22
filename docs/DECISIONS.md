@@ -4,7 +4,7 @@ Format: short ADR entries. Newest first.
 
 ---
 
-## ADR-008 — Knowledge-first delivery sequence
+## ADR-008 - Knowledge-first delivery sequence
 
 **Status:** Accepted  
 **Date:** 2026-08-21
@@ -21,18 +21,18 @@ Format: short ADR entries. Newest first.
 
 ---
 
-## ADR-007 — NotebookLM-style knowledge workspace for Stage 1
+## ADR-007 - NotebookLM-style knowledge workspace for Stage 1
 
 **Status:** Accepted  
 **Date:** 2026-08-21
 
-**Decision:** Phase 2 Knowledge Workspace borrows NotebookLM interaction patterns (curated sources, grounded Q&A, derived briefs) while remaining a multi-tenant authority OS — not a NotebookLM clone.
+**Decision:** Phase 2 Knowledge Workspace borrows NotebookLM interaction patterns (curated sources, grounded Q&A, derived briefs) while remaining a multi-tenant authority OS - not a NotebookLM clone.
 
 **Rationale:** Familiar, high-leverage UX for building and interrogating a curated knowledge base before market messaging and content generation.
 
 ---
 
-## ADR-006 — Auth provider for MVP
+## ADR-006 - Auth provider for MVP
 
 **Status:** Accepted (default; refine if needed)  
 **Date:** 2026-08-13
@@ -43,7 +43,7 @@ Format: short ADR entries. Newest first.
 
 ---
 
-## ADR-005 — GitHub repository
+## ADR-005 - GitHub repository
 
 **Status:** Accepted  
 **Date:** 2026-08-13
@@ -52,7 +52,7 @@ Format: short ADR entries. Newest first.
 
 ---
 
-## ADR-004 — Scaffold & package manager
+## ADR-004 - Scaffold & package manager
 
 **Status:** Accepted  
 **Date:** 2026-08-13
@@ -63,7 +63,7 @@ Format: short ADR entries. Newest first.
 
 ---
 
-## ADR-003 — SocialRadar reuse
+## ADR-003 - SocialRadar reuse
 
 **Status:** Accepted  
 **Date:** 2026-08-13
@@ -74,7 +74,7 @@ Format: short ADR entries. Newest first.
 
 ---
 
-## ADR-002 — Supabase as backend
+## ADR-002 - Supabase as backend
 
 **Status:** Accepted  
 **Date:** 2026-08-13
@@ -85,7 +85,7 @@ Format: short ADR entries. Newest first.
 
 ---
 
-## ADR-001 — Multi-tenancy from day one
+## ADR-001 - Multi-tenancy from day one
 
 **Status:** Accepted  
 **Date:** 2026-08-13

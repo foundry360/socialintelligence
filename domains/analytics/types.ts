@@ -1,6 +1,6 @@
 import type { TenantScoped, Timestamps, UUID } from "@/domains/shared/types";
 
-/** Learning-loop events — Phase 4+. Engagement alone is not success. */
+/** Learning-loop events - Phase 4+. Engagement alone is not success. */
 
 export type PerformanceMetricKind =
   | "awareness"

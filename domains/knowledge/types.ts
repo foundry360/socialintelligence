@@ -9,6 +9,7 @@ export interface CompanyProfile extends TenantScoped, Timestamps, SoftDeletable 
   positioning: string;
   differentiators: string[];
   websiteUrl?: string;
+  websiteUrls?: string[];
 }
 
 export interface Capability extends TenantScoped, Timestamps, SoftDeletable {

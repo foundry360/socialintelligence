@@ -7,6 +7,8 @@
 export function sanitizeLightMarkdown(text: string): string {
   return text
     .replace(/\r\n/g, "\n")
+    .replace(/\u2014/g, " - ") // em dash
+    .replace(/\u2013/g, "-") // en dash
     .replace(/```[\s\S]*?```/g, (block) =>
       block.replace(/^```\w*\n?/, "").replace(/\n?```$/, ""),
     )
@@ -21,11 +23,12 @@ export function sanitizeLightMarkdown(text: string): string {
     // Deck / PDF chrome that models sometimes paste through
     .replace(/^[^\n]*Confidential\s*&\s*Proprietary[^\n]*$/gim, "")
     .replace(/^\d{1,2}\/\d{1,2}\/\d{2,4}[^\n]*$/gm, "")
+    .replace(/ {2,}/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
-/** @deprecated Prefer sanitizeLightMarkdown — kept for call-site compatibility. */
+/** @deprecated Prefer sanitizeLightMarkdown - kept for call-site compatibility. */
 export function toPlainProse(text: string): string {
   return sanitizeLightMarkdown(text);
 }

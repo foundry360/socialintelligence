@@ -162,6 +162,7 @@ export function MissionsDashboard({
             value={query}
             onChange={setQuery}
             placeholder="Search projects"
+            alwaysExpanded
           />
 
           <div className="flex h-9 items-center rounded-full border border-border bg-background p-0.5">

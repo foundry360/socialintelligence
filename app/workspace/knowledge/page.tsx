@@ -12,8 +12,20 @@ import {
 } from "@/components/knowledge-checklist";
 import { requireWorkspaceContext } from "@/lib/auth/workspace";
 import { createClient } from "@/lib/db/server";
+import {
+  mapBaselineListItem,
+  type AuthorityBaselineRow,
+} from "@/lib/workspace/baseline";
 
-export default async function KnowledgePage() {
+export default async function KnowledgePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ baseline?: string }>;
+}) {
+  const params = await searchParams;
+  const openBaselineInitially =
+    params.baseline === "1" || params.baseline === "open";
+
   const ctx = await requireWorkspaceContext();
   const supabase = await createClient();
 
@@ -29,7 +41,8 @@ export default async function KnowledgePage() {
     { data: marketQuestions },
     { data: proofItems },
     { data: terms },
-    { count: baselineCount },
+    { data: baselineRows },
+    { data: baselineSources },
   ] = await Promise.all([
     supabase
       .from("company_profiles")
@@ -84,15 +97,43 @@ export default async function KnowledgePage() {
       .order("preferred_term"),
     supabase
       .from("authority_baselines")
-      .select("id", { count: "exact", head: true })
+      .select("*")
+      .eq("tenant_id", ctx.tenantId)
+      .is("deleted_at", null)
+      .order("version", { ascending: false }),
+    supabase
+      .from("knowledge_sources")
+      .select("id, title")
       .eq("tenant_id", ctx.tenantId)
       .is("deleted_at", null),
   ]);
+
+  const profileDone = Boolean(
+    profile?.display_name?.trim() &&
+      profile?.legal_name?.trim() &&
+      (profile?.summary?.trim() || profile?.positioning?.trim()),
+  );
+  const spineComplete = [
+    profileDone,
+    (industries?.length ?? 0) > 0,
+    (capabilities?.length ?? 0) > 0,
+    (personas?.length ?? 0) > 0,
+    (marketQuestions?.length ?? 0) > 0,
+    (povs?.length ?? 0) > 0,
+    (proofItems?.length ?? 0) > 0,
+    (terms?.length ?? 0) > 0,
+  ].every(Boolean);
+
+  const baselines = (baselineRows ?? []).map((row) =>
+    mapBaselineListItem(row as AuthorityBaselineRow),
+  );
+  const hasBaseline = baselines.length > 0;
 
   return (
     <WorkspaceShell
       tenantName={ctx.tenantName}
       email={ctx.user.email}
+      role={ctx.role}
       avatarUrl={
         typeof ctx.user.user_metadata?.avatar_url === "string"
           ? ctx.user.user_metadata.avatar_url
@@ -111,7 +152,14 @@ export default async function KnowledgePage() {
         proofItems={(proofItems as KnowledgeProofItem[] | null) ?? []}
         terms={(terms as KnowledgeTerm[] | null) ?? []}
         canEdit={canEdit}
-        hasBaseline={(baselineCount ?? 0) > 0}
+        hasBaseline={hasBaseline}
+        baselines={baselines}
+        baselineSources={(baselineSources ?? []).map((source) => ({
+          id: source.id,
+          title: source.title,
+        }))}
+        spineComplete={spineComplete}
+        openBaselineInitially={openBaselineInitially}
       />
     </WorkspaceShell>
   );

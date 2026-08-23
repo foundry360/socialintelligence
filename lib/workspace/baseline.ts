@@ -61,3 +61,27 @@ export function mapBaselineListItem(row: AuthorityBaselineRow): BaselineListItem
   const mapped = mapBaselineRow(row);
   return { ...mapped, rawStatus: row.status };
 }
+
+/** Sidebar card: pending draft first, else current approved, else latest active. */
+export function resolveBaselineNavItem(
+  baselines: BaselineListItem[],
+): BaselineListItem | null {
+  if (baselines.length === 0) return null;
+
+  const sorted = [...baselines].sort((a, b) => b.version - a.version);
+  const pending = sorted.find(
+    (baseline) =>
+      baseline.rawStatus === "awaiting_approval" || baseline.rawStatus === "draft",
+  );
+  if (pending) return pending;
+
+  const approved = sorted.find((baseline) => baseline.rawStatus === "approved");
+  if (approved) return approved;
+
+  return (
+    sorted.find(
+      (baseline) =>
+        baseline.rawStatus !== "superseded" && baseline.rawStatus !== "rejected",
+    ) ?? sorted[0]
+  );
+}

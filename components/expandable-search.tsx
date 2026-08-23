@@ -7,22 +7,24 @@ export function ExpandableSearch({
   value,
   onChange,
   placeholder = "Search",
+  alwaysExpanded = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  alwaysExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(alwaysExpanded);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const isOpen = expanded || value.trim().length > 0;
+  const isOpen = alwaysExpanded || expanded || value.trim().length > 0;
 
   useEffect(() => {
-    if (expanded) inputRef.current?.focus();
-  }, [expanded]);
+    if (expanded && !alwaysExpanded) inputRef.current?.focus();
+  }, [expanded, alwaysExpanded]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || alwaysExpanded) return;
     function onPointerDown(event: PointerEvent) {
       const target = event.target as Node | null;
       if (rootRef.current && target && !rootRef.current.contains(target)) {
@@ -42,7 +44,7 @@ export function ExpandableSearch({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [isOpen, onChange, value]);
+  }, [isOpen, onChange, value, alwaysExpanded]);
 
   return (
     <div
@@ -51,18 +53,24 @@ export function ExpandableSearch({
         isOpen ? "w-64" : "w-9"
       }`}
     >
-      <button
-        type="button"
-        aria-label={isOpen ? undefined : placeholder}
-        aria-expanded={isOpen}
-        onClick={() => {
-          if (!isOpen) setExpanded(true);
-          else inputRef.current?.focus();
-        }}
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center text-muted hover:text-foreground"
-      >
-        <Search className="h-4 w-4" aria-hidden />
-      </button>
+      {alwaysExpanded ? (
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center text-muted">
+          <Search className="h-4 w-4" aria-hidden />
+        </span>
+      ) : (
+        <button
+          type="button"
+          aria-label={isOpen ? undefined : placeholder}
+          aria-expanded={isOpen}
+          onClick={() => {
+            if (!isOpen) setExpanded(true);
+            else inputRef.current?.focus();
+          }}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center text-muted hover:text-foreground"
+        >
+          <Search className="h-4 w-4" aria-hidden />
+        </button>
+      )}
       <input
         ref={inputRef}
         type="search"
@@ -70,9 +78,11 @@ export function ExpandableSearch({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         tabIndex={isOpen ? 0 : -1}
-        className={`min-w-0 flex-1 bg-transparent py-1.5 pr-2 text-sm outline-none transition-opacity duration-200 ${
-          isOpen ? "opacity-100" : "pointer-events-none w-0 opacity-0"
-        }`}
+        className={
+          isOpen
+            ? "min-w-0 flex-1 bg-transparent py-1.5 pr-2 text-sm opacity-100 outline-none"
+            : "pointer-events-none w-0 min-w-0 flex-1 bg-transparent py-1.5 pr-2 text-sm opacity-0 outline-none"
+        }
       />
       {isOpen && value ? (
         <button

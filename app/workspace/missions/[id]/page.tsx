@@ -85,6 +85,7 @@ export default async function MissionChatPage({
     <WorkspaceShell
       tenantName={ctx.tenantName}
       email={ctx.user.email}
+      role={ctx.role}
       avatarUrl={
         typeof ctx.user.user_metadata?.avatar_url === "string"
           ? ctx.user.user_metadata.avatar_url

@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { Camera, Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import Link from "next/link";
 import {
   removeUserAvatar,
   signOut,
@@ -46,9 +47,11 @@ const MODES = [
 export function UserMenu({
   email,
   avatarUrl,
+  canManageTeam = false,
 }: {
   email?: string | null;
   avatarUrl?: string | null;
+  canManageTeam?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -267,6 +270,17 @@ export function UserMenu({
                 })}
               </div>
             </div>
+
+            {canManageTeam ? (
+              <Link
+                href="/workspace/settings/team"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="block w-full rounded-md border border-border px-3 py-2 text-center text-sm text-foreground hover:bg-hover"
+              >
+                Account
+              </Link>
+            ) : null}
 
             <form action={signOut}>
               <button

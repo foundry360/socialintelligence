@@ -178,6 +178,7 @@ export default async function WorkspaceOverviewPage() {
     <WorkspaceShell
       tenantName={ctx.tenantName}
       email={ctx.user.email}
+      role={ctx.role}
       avatarUrl={
         typeof ctx.user.user_metadata?.avatar_url === "string"
           ? ctx.user.user_metadata.avatar_url
@@ -328,7 +329,7 @@ function nextAction(input: {
     return {
       title: `Authority Baseline v${input.baselineVersion ?? 1} approved`,
       body: "Messaging Plan is the next phase. Content ops unlock after that.",
-      href: "/workspace/baseline",
+      href: "/workspace/knowledge?baseline=1",
       cta: "View baseline",
     };
   }
@@ -336,7 +337,7 @@ function nextAction(input: {
     return {
       title: "Generate your Authority Baseline",
       body: "Knowledge and evidence are ready. Draft a baseline, review it, and approve v1.",
-      href: "/workspace/baseline",
+      href: "/workspace/knowledge?baseline=1",
       cta: "Open Baseline",
     };
   }

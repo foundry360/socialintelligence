@@ -6,13 +6,16 @@ export function WorkspaceShell({
   tenantName,
   email,
   avatarUrl,
+  role,
   children,
 }: {
   tenantName: string;
   email?: string | null;
   avatarUrl?: string | null;
+  role?: string | null;
   children: ReactNode;
 }) {
+  const canManageTeam = role === "owner" || role === "admin";
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
       <header className="z-40 shrink-0 border-b border-[#0A0A0B] bg-[#0A0A0B] text-white backdrop-blur dark:border-border dark:bg-surface/95 dark:text-foreground">
@@ -31,7 +34,11 @@ export function WorkspaceShell({
           </div>
           <div className="flex min-w-0 shrink-0 items-center justify-end gap-2 sm:gap-3">
             <WorkspaceNav />
-            <UserMenu email={email} avatarUrl={avatarUrl} />
+            <UserMenu
+              email={email}
+              avatarUrl={avatarUrl}
+              canManageTeam={canManageTeam}
+            />
           </div>
         </div>
       </header>

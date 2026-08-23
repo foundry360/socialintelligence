@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Check, Loader2, RefreshCw, X } from "lucide-react";
 import {
   approveAuthorityBaseline,
@@ -13,7 +13,7 @@ import type { BaselineListItem } from "@/lib/workspace/baseline";
 
 type SourceRef = { id: string; title: string };
 
-function statusLabel(status: BaselineListItem["rawStatus"]): string {
+export function baselineStatusLabel(status: BaselineListItem["rawStatus"]): string {
   switch (status) {
     case "approved":
       return "Approved";
@@ -30,7 +30,15 @@ function statusLabel(status: BaselineListItem["rawStatus"]): string {
   }
 }
 
-function statusClass(status: BaselineListItem["rawStatus"]): string {
+export function formatBaselineDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export function baselineStatusClass(status: BaselineListItem["rawStatus"]): string {
   switch (status) {
     case "approved":
       return "bg-accent/15 text-accent";
@@ -69,7 +77,7 @@ function BaselineSection({
   );
 }
 
-function BaselineDetail({
+export function BaselineDetail({
   baseline,
   sourcesById,
   canEdit,
@@ -105,14 +113,17 @@ function BaselineDetail({
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-semibold">Version {baseline.version}</h2>
             <span
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusClass(baseline.rawStatus)}`}
+              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${baselineStatusClass(baseline.rawStatus)}`}
             >
-              {statusLabel(baseline.rawStatus)}
+              {baselineStatusLabel(baseline.rawStatus)}
             </span>
           </div>
+          <p className="mt-1 text-xs text-muted">
+            Created {formatBaselineDate(baseline.createdAt)}
+          </p>
           {baseline.approvedAt ? (
-            <p className="mt-1 text-xs text-muted">
-              Approved {new Date(baseline.approvedAt).toLocaleDateString()}
+            <p className="mt-0.5 text-xs text-muted">
+              Approved {formatBaselineDate(baseline.approvedAt)}
             </p>
           ) : null}
         </div>
@@ -218,17 +229,24 @@ export function BaselinePanel({
   sources,
   canEdit,
   foundationReady,
-  selectedId,
+  initialSelectedId = null,
 }: {
   baselines: BaselineListItem[];
   sources: SourceRef[];
   canEdit: boolean;
   foundationReady: boolean;
-  selectedId: string | null;
+  initialSelectedId?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialSelectedId,
+  );
+
+  useEffect(() => {
+    if (initialSelectedId) setSelectedId(initialSelectedId);
+  }, [initialSelectedId]);
 
   const sourcesById = new Map(sources.map((s) => [s.id, s] as const));
   const approved = baselines.find((b) => b.rawStatus === "approved") ?? null;
@@ -244,7 +262,7 @@ export function BaselinePanel({
     startTransition(async () => {
       try {
         const { id } = await generateAuthorityBaseline();
-        router.push(`/workspace/baseline?id=${id}`);
+        setSelectedId(id);
         router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Generation failed.");
@@ -252,32 +270,36 @@ export function BaselinePanel({
     });
   }
 
+  const helperText = approved
+    ? "An approved baseline is active. Generate a new version when knowledge or evidence changes materially."
+    : !foundationReady
+      ? "Complete structured knowledge and accept evidence sources before generating a baseline."
+      : null;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-2xl text-sm text-muted">
-          {approved
-            ? "An approved baseline is active. Generate a new version when knowledge or evidence changes materially."
-            : foundationReady
-              ? "Generate a baseline from structured knowledge and accepted library sources, then approve it before messaging plan work."
-              : "Complete structured knowledge and accept evidence sources before generating a baseline."}
-        </p>
-        {canEdit ? (
-          <button
-            type="button"
-            disabled={!foundationReady || pending}
-            onClick={generate}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {pending ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <RefreshCw className="h-4 w-4" aria-hidden />
-            )}
-            {pending ? "Generating…" : "Generate draft"}
-          </button>
-        ) : null}
-      </div>
+      {helperText || (canEdit && !selected) ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {helperText ? (
+            <p className="max-w-2xl text-sm text-muted">{helperText}</p>
+          ) : null}
+          {canEdit && !selected ? (
+            <button
+              type="button"
+              disabled={!foundationReady || pending}
+              onClick={generate}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {pending ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <RefreshCw className="h-4 w-4" aria-hidden />
+              )}
+              {pending ? "Generating…" : "Generate draft"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {error ? (
         <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
@@ -290,17 +312,18 @@ export function BaselinePanel({
           {baselines.map((b) => {
             const active = selected?.id === b.id;
             return (
-              <Link
+              <button
                 key={b.id}
-                href={`/workspace/baseline?id=${b.id}`}
+                type="button"
+                onClick={() => setSelectedId(b.id)}
                 className={
                   active
                     ? "rounded-full border border-accent bg-accent/10 px-3 py-1 text-xs font-medium text-accent"
                     : "rounded-full border border-border px-3 py-1 text-xs text-muted hover:border-accent/40 hover:text-foreground"
                 }
               >
-                v{b.version} · {statusLabel(b.rawStatus)}
-              </Link>
+                v{b.version} · {baselineStatusLabel(b.rawStatus)}
+              </button>
             );
           })}
         </div>
@@ -317,15 +340,17 @@ export function BaselinePanel({
           <p className="text-sm text-muted">
             {foundationReady
               ? "No baseline yet. Generate your first draft to begin Phase 3."
-              : "Finish the knowledge foundation on Overview, then return here."}
+              : "Complete structured knowledge before generating a baseline."}
           </p>
-          {!foundationReady ? (
-            <Link
-              href="/workspace/overview"
-              className="mt-4 inline-flex rounded-md border border-border px-4 py-2 text-sm font-medium hover:border-accent/40"
+          {canEdit && foundationReady ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={generate}
+              className="mt-4 inline-flex rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-60"
             >
-              Open overview
-            </Link>
+              Generate draft
+            </button>
           ) : null}
         </div>
       )}

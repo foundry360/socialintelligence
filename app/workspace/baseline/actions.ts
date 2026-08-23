@@ -71,7 +71,6 @@ export async function generateAuthorityBaseline(): Promise<{ id: string }> {
     throw new Error(error?.message ?? "Failed to save baseline draft.");
   }
 
-  revalidatePath("/workspace/baseline");
   revalidatePath("/workspace/knowledge");
   revalidatePath("/workspace/overview");
   return { id: data.id };
@@ -121,7 +120,7 @@ export async function approveAuthorityBaseline(baselineId: string): Promise<void
 
   if (approveError) throw new Error(approveError.message);
 
-  revalidatePath("/workspace/baseline");
+  revalidatePath("/workspace/knowledge");
   revalidatePath("/workspace/overview");
 }
 
@@ -142,6 +141,6 @@ export async function rejectAuthorityBaseline(baselineId: string): Promise<void>
 
   if (error) throw new Error(error.message);
 
-  revalidatePath("/workspace/baseline");
+  revalidatePath("/workspace/knowledge");
   revalidatePath("/workspace/overview");
 }

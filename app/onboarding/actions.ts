@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSessionUser, listMembershipsForUser } from "@/lib/auth/session";
 import { provisionTenantForUser } from "@/lib/auth/provision-tenant";
+import { acceptPendingInvitesForUser } from "@/lib/tenancy/accept-invites";
 
 export type ProvisionResult =
   | { ok: true }
@@ -47,6 +48,13 @@ export async function resolvePostAuthPath(
 ): Promise<"/workspace" | "/onboarding"> {
   const user = await getSessionUser();
   if (!user) return "/onboarding";
+
+  if (user.email) {
+    await acceptPendingInvitesForUser({
+      userId: user.id,
+      email: user.email,
+    }).catch(() => undefined);
+  }
 
   const memberships = await listMembershipsForUser(user.id);
   if (memberships.length > 0) return "/workspace";

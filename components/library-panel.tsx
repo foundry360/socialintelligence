@@ -178,6 +178,7 @@ export function LibraryPanel({
             value={query}
             onChange={setQuery}
             placeholder="Search sources"
+            alwaysExpanded
           />
           <AddSourceButton variant="pill" />
         </div>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { acceptPendingInvitesForUser } from "@/lib/tenancy/accept-invites";
 import { createClient } from "@/lib/db/server";
 
 function safeNextPath(next: string | null): string {
@@ -18,6 +19,15 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user?.email) {
+        await acceptPendingInvitesForUser({
+          userId: user.id,
+          email: user.email,
+        }).catch(() => undefined);
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

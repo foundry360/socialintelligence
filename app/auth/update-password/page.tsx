@@ -17,10 +17,10 @@ export default async function UpdatePasswordPage() {
       <div>
         <p className="text-sm text-muted">Social Intelligence</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-          Choose a new password
+          Set your password
         </h1>
         <p className="mt-2 text-sm text-muted">
-          Signed in as {user.email}. Set a new password to continue.
+          Signed in as {user.email}. Choose a password to finish joining the workspace.
         </p>
       </div>
       <UpdatePasswordForm />

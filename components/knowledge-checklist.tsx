@@ -2,6 +2,7 @@
 
 import {
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -24,8 +25,14 @@ import {
   updateCompanyProfile,
   upsertPov,
 } from "@/app/workspace/actions";
-import { KnowledgeBaselineButton } from "@/components/knowledge-baseline-button";
-import { Check, ChevronDown, Plus } from "lucide-react";
+import { KnowledgeBaselineControls } from "@/components/knowledge-baseline-controls";
+import { BaselineDetail, baselineStatusLabel } from "@/components/baseline-panel";
+import { BaselineVersionSlidePanel } from "@/components/baseline-version-slide-panel";
+import {
+  resolveBaselineNavItem,
+  type BaselineListItem,
+} from "@/lib/workspace/baseline";
+import { Check, ChevronDown, Pencil, Plus, X } from "lucide-react";
 
 export type KnowledgeProfile = {
   legal_name: string | null;
@@ -151,7 +158,7 @@ const STEPS: StepDef[] = [
   {
     id: "profile",
     label: "Company Profile",
-    title: "Define the Company Profile",
+    title: "Company Profile",
     description:
       "Legal identity, positioning, and differentiators - the spine every answer and baseline builds from.",
   },
@@ -429,6 +436,10 @@ export function KnowledgeChecklist({
   terms,
   canEdit,
   hasBaseline,
+  baselines,
+  baselineSources,
+  spineComplete,
+  openBaselineInitially = false,
 }: {
   profile: KnowledgeProfile | null;
   industries: KnowledgeIndustry[];
@@ -440,6 +451,10 @@ export function KnowledgeChecklist({
   terms: KnowledgeTerm[];
   canEdit: boolean;
   hasBaseline: boolean;
+  baselines: BaselineListItem[];
+  baselineSources: { id: string; title: string }[];
+  spineComplete: boolean;
+  openBaselineInitially?: boolean;
 }) {
   const completion: Record<StepId, boolean> = {
     profile: Boolean(
@@ -561,10 +576,52 @@ export function KnowledgeChecklist({
   }
 
   const doneCount = STEPS.filter((s) => completion[s.id]).length;
+  const [baselinePanelOpen, setBaselinePanelOpen] = useState(
+    openBaselineInitially && hasBaseline,
+  );
+  const [selectedBaselineId, setSelectedBaselineId] = useState<string | null>(
+    null,
+  );
+
+  const sourcesById = useMemo(
+    () => new Map(baselineSources.map((source) => [source.id, source] as const)),
+    [baselineSources],
+  );
+
+  const approvedBaseline =
+    baselines.find((baseline) => baseline.rawStatus === "approved") ?? null;
+
+  const selectedBaseline =
+    baselines.find((baseline) => baseline.id === selectedBaselineId) ??
+    baselines.find((baseline) => baseline.rawStatus === "awaiting_approval") ??
+    approvedBaseline ??
+    baselines[0] ??
+    null;
+
+  const baselineNavBaseline = resolveBaselineNavItem(baselines);
+  const baselineNavComplete = baselineNavBaseline?.rawStatus === "approved";
+
+  function openBaselinePanel(id?: string) {
+    if (id) setSelectedBaselineId(id);
+    else if (!selectedBaselineId && selectedBaseline) {
+      setSelectedBaselineId(selectedBaseline.id);
+    }
+    setBaselinePanelOpen(true);
+  }
+
+  function closeBaselinePanel() {
+    setBaselinePanelOpen(false);
+  }
+
+  const showBaselineContent = baselinePanelOpen && hasBaseline && selectedBaseline;
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
-      <aside className="flex w-full max-w-sm shrink-0 flex-col bg-white dark:bg-surface sm:max-w-md lg:w-[26rem] lg:max-w-[26rem]">
+      <aside
+        className={`flex min-h-0 w-full max-w-sm shrink-0 flex-col overflow-hidden bg-white dark:bg-surface sm:max-w-md lg:w-[26rem] lg:max-w-[26rem] ${
+          baselinePanelOpen ? "border-r border-border" : ""
+        }`}
+      >
         <div className="px-5 py-5">
           <h1 className="text-lg font-semibold tracking-tight">
             Structured Knowledge
@@ -577,16 +634,19 @@ export function KnowledgeChecklist({
             {doneCount} of {STEPS.length} complete
           </p>
         </div>
-        <nav className="scrollbar-thread flex-1 space-y-2 overflow-y-auto p-3">
+        <nav className="min-h-0 flex-1 space-y-2 overflow-hidden p-3">
           {STEPS.map((step) => {
             const complete = completion[step.id];
-            const isActive = step.id === activeId;
+            const isActive = !baselinePanelOpen && step.id === activeId;
             const summary = summaries[step.id];
             return (
               <button
                 key={step.id}
                 type="button"
-                onClick={() => setActiveId(step.id)}
+                onClick={() => {
+                  setBaselinePanelOpen(false);
+                  setActiveId(step.id);
+                }}
                 className={
                   isActive
                     ? "flex w-full items-start gap-3 rounded-lg border border-foreground/35 bg-[#F3F8FC] px-3 py-3 text-left dark:bg-subtle"
@@ -615,20 +675,77 @@ export function KnowledgeChecklist({
               </button>
             );
           })}
+          {hasBaseline && baselineNavBaseline ? (
+            <button
+              type="button"
+              onClick={() => openBaselinePanel()}
+              className={
+                baselinePanelOpen
+                  ? "flex w-full items-start gap-3 rounded-lg border border-foreground/35 bg-[#F3F8FC] px-3 py-3 text-left dark:bg-subtle"
+                  : "flex w-full items-start gap-3 rounded-lg border border-border bg-surface px-3 py-3 text-left hover:bg-hover"
+              }
+            >
+              <StepStatusIcon
+                complete={baselineNavComplete}
+                active={baselinePanelOpen}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-foreground">
+                  Authority Baseline
+                </span>
+                <span className="mt-0.5 block truncate text-xs text-muted">
+                  v{baselineNavBaseline.version} ·{" "}
+                  {baselineStatusLabel(baselineNavBaseline.rawStatus)}
+                </span>
+              </span>
+            </button>
+          ) : null}
         </nav>
-        {canEdit && (doneCount === STEPS.length || hasBaseline) ? (
-          <KnowledgeBaselineButton hasBaseline={hasBaseline} />
-        ) : null}
+        <KnowledgeBaselineControls
+          hasBaseline={hasBaseline}
+          spineComplete={spineComplete}
+          canEdit={canEdit}
+          onBaselineGenerated={(id) => {
+            setSelectedBaselineId(id);
+            setBaselinePanelOpen(true);
+          }}
+        />
       </aside>
 
-      <div className="scrollbar-thread min-h-0 min-w-0 flex-1 overflow-y-auto bg-[#F3F8FC] py-8 pl-20 pr-6 dark:bg-background sm:pl-28 sm:pr-10 lg:pl-36">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-          {active.title}
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
-          {active.description}
-        </p>
-        <div className="mt-8 max-w-6xl pb-8">{panel}</div>
+      <BaselineVersionSlidePanel
+        open={baselinePanelOpen && hasBaseline}
+        baselines={baselines}
+        selectedId={selectedBaseline?.id ?? null}
+        onSelect={setSelectedBaselineId}
+        onClose={closeBaselinePanel}
+      />
+
+      <div
+        className={`scrollbar-thread min-h-0 min-w-0 flex-1 overflow-y-auto bg-[#F3F8FC] py-8 dark:bg-background ${
+          baselinePanelOpen
+            ? "px-8 sm:px-10 lg:px-12"
+            : "pl-20 pr-6 sm:pl-28 sm:pr-10 lg:pl-36"
+        }`}
+      >
+        {showBaselineContent ? (
+          <div className="mx-auto max-w-5xl pb-8">
+            <BaselineDetail
+              baseline={selectedBaseline}
+              sourcesById={sourcesById}
+              canEdit={canEdit}
+            />
+          </div>
+        ) : (
+          <>
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+              {active.title}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted">
+              {active.description}
+            </p>
+            <div className="mt-8 max-w-6xl pb-8">{panel}</div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -671,6 +788,122 @@ function WebsiteUrlsField({ initialUrls }: { initialUrls: string[] }) {
   );
 }
 
+function ProfileSectionCard({
+  title,
+  editing,
+  onEdit,
+  onCancel,
+  saved,
+  children,
+}: {
+  title: string;
+  editing: boolean;
+  onEdit: () => void;
+  onCancel: () => void;
+  saved: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`grid gap-3 ${cardClass}`}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-medium">{title}</p>
+        {editing ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            aria-label={`Cancel editing ${title}`}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted hover:bg-hover hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label={`Edit ${title}`}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted hover:bg-hover hover:text-foreground"
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        )}
+      </div>
+      {editing ? children : saved}
+    </div>
+  );
+}
+
+function ProfileSavedValue({
+  label,
+  value,
+  multiline,
+}: {
+  label: string;
+  value: string | null | undefined;
+  multiline?: boolean;
+}) {
+  const text = value?.trim();
+  return (
+    <div>
+      <p className="text-xs font-medium text-muted">{label}</p>
+      {text ? (
+        <p
+          className={`mt-1 text-sm text-foreground ${multiline ? "whitespace-pre-wrap" : ""}`}
+        >
+          {text}
+        </p>
+      ) : (
+        <p className="mt-1 text-sm text-muted">Not set</p>
+      )}
+    </div>
+  );
+}
+
+function ProfileHiddenIdentity({ profile }: { profile: KnowledgeProfile | null }) {
+  return (
+    <>
+      <input type="hidden" name="legal_name" value={profile?.legal_name ?? ""} />
+      <input
+        type="hidden"
+        name="display_name"
+        value={profile?.display_name ?? ""}
+      />
+      <input type="hidden" name="tagline" value={profile?.tagline ?? ""} />
+    </>
+  );
+}
+
+function ProfileHiddenPositioning({
+  profile,
+}: {
+  profile: KnowledgeProfile | null;
+}) {
+  return (
+    <>
+      <input type="hidden" name="summary" value={profile?.summary ?? ""} />
+      <input
+        type="hidden"
+        name="positioning"
+        value={profile?.positioning ?? ""}
+      />
+      <input
+        type="hidden"
+        name="differentiators"
+        value={(profile?.differentiators ?? []).join("\n")}
+      />
+    </>
+  );
+}
+
+function ProfileHiddenWebsites({ urls }: { urls: string[] }) {
+  return (
+    <>
+      {urls.map((url, index) => (
+        <input key={`${url}-${index}`} type="hidden" name="website_urls" value={url} />
+      ))}
+    </>
+  );
+}
+
 function ProfilePanel({
   profile,
   nav,
@@ -682,14 +915,51 @@ function ProfilePanel({
     const fromList = asStringList(profile?.website_urls);
     if (fromList.length > 0) return fromList;
     if (profile?.website_url?.trim()) return [profile.website_url.trim()];
-    return [""];
+    return [];
   })();
+
+  const [editingSection, setEditingSection] = useState<
+    "identity" | "positioning" | "websites" | null
+  >(null);
+
+  async function saveProfile(formData: FormData) {
+    await updateCompanyProfile(formData);
+    setEditingSection(null);
+  }
+
+  const differentiators = (profile?.differentiators ?? []).filter(Boolean);
 
   return (
     <div className="max-w-4xl">
-      <form action={updateCompanyProfile} className="grid gap-4">
-        <div className={`grid gap-3 ${cardClass}`}>
-          <p className="text-sm font-medium">Identity</p>
+      <form action={saveProfile} className="grid gap-4">
+        {editingSection !== "identity" ? (
+          <ProfileHiddenIdentity profile={profile} />
+        ) : null}
+        {editingSection !== "positioning" ? (
+          <ProfileHiddenPositioning profile={profile} />
+        ) : null}
+        {editingSection !== "websites" ? (
+          <ProfileHiddenWebsites urls={initialUrls} />
+        ) : null}
+
+        <ProfileSectionCard
+          title="Identity"
+          editing={editingSection === "identity"}
+          onEdit={() => setEditingSection("identity")}
+          onCancel={() => setEditingSection(null)}
+          saved={
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ProfileSavedValue label="Legal name" value={profile?.legal_name} />
+              <ProfileSavedValue
+                label="Display name"
+                value={profile?.display_name}
+              />
+              <div className="sm:col-span-2">
+                <ProfileSavedValue label="Tagline" value={profile?.tagline} />
+              </div>
+            </div>
+          }
+        >
           <div className="grid gap-3 sm:grid-cols-2">
             <label className={labelClass}>
               Legal name
@@ -718,10 +988,43 @@ function ProfilePanel({
               defaultValue={profile?.tagline ?? ""}
             />
           </label>
-        </div>
+          <button type="submit" className={saveBtnClass}>
+            Save
+          </button>
+        </ProfileSectionCard>
 
-        <div className={`grid gap-3 ${cardClass}`}>
-          <p className="text-sm font-medium">Positioning</p>
+        <ProfileSectionCard
+          title="Positioning"
+          editing={editingSection === "positioning"}
+          onEdit={() => setEditingSection("positioning")}
+          onCancel={() => setEditingSection(null)}
+          saved={
+            <div className="grid gap-4">
+              <ProfileSavedValue
+                label="Summary"
+                value={profile?.summary}
+                multiline
+              />
+              <ProfileSavedValue
+                label="Positioning"
+                value={profile?.positioning}
+                multiline
+              />
+              <div>
+                <p className="text-xs font-medium text-muted">Differentiators</p>
+                {differentiators.length > 0 ? (
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-foreground">
+                    {differentiators.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-sm text-muted">Not set</p>
+                )}
+              </div>
+            </div>
+          }
+        >
           <label className={labelClass}>
             Summary
             <AutoGrowTextarea
@@ -746,22 +1049,49 @@ function ProfilePanel({
               name="differentiators"
               rows={3}
               className={inputClass}
-              defaultValue={(profile?.differentiators ?? []).join("\n")}
+              defaultValue={differentiators.join("\n")}
             />
           </label>
-        </div>
+          <button type="submit" className={saveBtnClass}>
+            Save
+          </button>
+        </ProfileSectionCard>
 
-        <div className={`grid gap-3 ${cardClass}`}>
-          <p className="text-sm font-medium">Websites</p>
-          <WebsiteUrlsField initialUrls={initialUrls} />
-        </div>
-
-        <button
-          type="submit"
-          className="w-fit rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground"
+        <ProfileSectionCard
+          title="Websites"
+          editing={editingSection === "websites"}
+          onEdit={() => setEditingSection("websites")}
+          onCancel={() => setEditingSection(null)}
+          saved={
+            <div>
+              {initialUrls.length > 0 ? (
+                <ul className="space-y-1 text-sm text-foreground">
+                  {initialUrls.map((url) => (
+                    <li key={url}>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent hover:underline"
+                      >
+                        {url}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted">Not set</p>
+              )}
+            </div>
+          }
         >
-          Save
-        </button>
+          <WebsiteUrlsField
+            initialUrls={initialUrls.length > 0 ? initialUrls : [""]}
+          />
+          <button type="submit" className={saveBtnClass}>
+            Save
+          </button>
+        </ProfileSectionCard>
       </form>
       <StepNavButtons {...nav} />
     </div>

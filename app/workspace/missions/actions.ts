@@ -17,7 +17,20 @@ export async function createMission(formData: FormData) {
   const description = String(formData.get("description") ?? "")
     .trim()
     .slice(0, MISSION_DESCRIPTION_MAX_LENGTH);
+  const projectLeadId = String(formData.get("project_lead_id") ?? "").trim();
   if (title.length < 2) throw new Error("Project title is required.");
+  if (!projectLeadId) throw new Error("Project lead is required.");
+
+  const { data: leadMembership } = await supabase
+    .from("tenant_memberships")
+    .select("user_id")
+    .eq("tenant_id", ctx.tenantId)
+    .eq("user_id", projectLeadId)
+    .maybeSingle();
+
+  if (!leadMembership) {
+    throw new Error("Project lead must be a member of this workspace.");
+  }
 
   const { data: lastMission } = await supabase
     .from("missions")
@@ -37,6 +50,7 @@ export async function createMission(formData: FormData) {
       title,
       description,
       created_by: ctx.user.id,
+      project_lead_id: projectLeadId,
       sort_order,
     })
     .select("id")

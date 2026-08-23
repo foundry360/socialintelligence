@@ -1,11 +1,54 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { SourceRowActions } from "@/components/source-row-actions";
 import { SourceTypeIcon } from "@/components/source-type-icon";
+import {
+  SortableTableHeader,
+  compareDates,
+  compareStrings,
+  toggleSortColumn,
+  type SortDirection,
+} from "@/components/sortable-table-header";
 import {
   sourceTypeDisplay,
   type LibrarySourceRow,
 } from "@/lib/workspace/library";
+import { TableSeeMore, useTablePagination } from "@/components/table-see-more";
+
+type SourceSortColumn = "type" | "title" | "creator" | "filename" | "modified";
+
+function sortSources(
+  sources: LibrarySourceRow[],
+  column: SourceSortColumn,
+  direction: SortDirection,
+): LibrarySourceRow[] {
+  const sorted = [...sources].sort((a, b) => {
+    let result = 0;
+    switch (column) {
+      case "type":
+        result = compareStrings(
+          sourceTypeDisplay(a.source_type),
+          sourceTypeDisplay(b.source_type),
+        );
+        break;
+      case "title":
+        result = compareStrings(a.title, b.title);
+        break;
+      case "creator":
+        result = compareStrings(a.creator_name, b.creator_name);
+        break;
+      case "filename":
+        result = compareStrings(a.original_filename, b.original_filename);
+        break;
+      case "modified":
+        result = compareDates(a.updated_at, b.updated_at);
+        break;
+    }
+    return direction === "asc" ? result : -result;
+  });
+  return sorted;
+}
 
 export function LibrarySourceTable({
   sources,
@@ -20,6 +63,26 @@ export function LibrarySourceTable({
   onDragStart: (sourceId: string) => void;
   onDragEnd: () => void;
 }) {
+  const [sortColumn, setSortColumn] = useState<SourceSortColumn>("modified");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  const sortedSources = useMemo(
+    () => sortSources(sources, sortColumn, sortDirection),
+    [sources, sortColumn, sortDirection],
+  );
+
+  const pagination = useTablePagination(
+    sortedSources.length,
+    `${sortColumn}:${sortDirection}:${sources.map((source) => source.id).join(",")}`,
+  );
+  const visibleSources = sortedSources.slice(0, pagination.visibleCount);
+
+  function onSortColumn(column: SourceSortColumn) {
+    const next = toggleSortColumn(sortColumn, column, sortDirection);
+    setSortColumn(next.column);
+    setSortDirection(next.direction);
+  }
+
   if (sources.length === 0) {
     return (
       <div className="flex h-full min-h-[12rem] items-center justify-center p-8 text-center text-sm text-muted">
@@ -29,28 +92,53 @@ export function LibrarySourceTable({
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-auto">
       <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
         <thead className="sticky top-0 z-10 border-b border-border bg-surface">
           <tr>
-            <th className="w-12 px-3 py-2.5 pl-4 font-medium text-muted">Type</th>
-            <th className="px-3 py-2.5 font-medium text-muted">Title</th>
-            <th className="hidden px-3 py-2.5 font-medium text-muted sm:table-cell">
-              Creator
-            </th>
-            <th className="hidden px-3 py-2.5 font-medium text-muted md:table-cell">
-              Filename
-            </th>
-            <th className="hidden px-3 py-2.5 font-medium text-muted lg:table-cell">
-              Modified
-            </th>
-            <th className="sticky right-0 w-20 bg-surface px-3 py-2.5 text-right font-medium text-muted">
+            <SortableTableHeader
+              label="Type"
+              active={sortColumn === "type"}
+              direction={sortDirection}
+              onSort={() => onSortColumn("type")}
+              className="w-12 px-3 py-2.5 pl-4"
+            />
+            <SortableTableHeader
+              label="Title"
+              active={sortColumn === "title"}
+              direction={sortDirection}
+              onSort={() => onSortColumn("title")}
+              className="px-3 py-2.5"
+            />
+            <SortableTableHeader
+              label="Creator"
+              active={sortColumn === "creator"}
+              direction={sortDirection}
+              onSort={() => onSortColumn("creator")}
+              className="hidden px-3 py-2.5 sm:table-cell"
+            />
+            <SortableTableHeader
+              label="Filename"
+              active={sortColumn === "filename"}
+              direction={sortDirection}
+              onSort={() => onSortColumn("filename")}
+              className="hidden px-3 py-2.5 md:table-cell"
+            />
+            <SortableTableHeader
+              label="Modified"
+              active={sortColumn === "modified"}
+              direction={sortDirection}
+              onSort={() => onSortColumn("modified")}
+              className="hidden px-3 py-2.5 lg:table-cell"
+            />
+            <th className="sticky right-0 w-20 bg-surface px-3 py-2.5 text-right text-sm font-medium text-muted">
               Actions
             </th>
           </tr>
         </thead>
         <tbody>
-          {sources.map((source, index) => {
+          {visibleSources.map((source, index) => {
             const active = source.id === selectedId;
             const striped = index % 2 === 1;
             const rowBg = active
@@ -115,6 +203,10 @@ export function LibrarySourceTable({
           })}
         </tbody>
       </table>
+      </div>
+      {pagination.hasMore ? (
+        <TableSeeMore onShowMore={pagination.showMore} />
+      ) : null}
     </div>
   );
 }

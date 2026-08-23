@@ -11,8 +11,6 @@ import {
 import {
   BookOpenCheck,
   Globe,
-  PanelLeftClose,
-  PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
   SendHorizontal,
@@ -435,7 +433,6 @@ export function KnowledgeChat({
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ThreadMessage[]>(initialMessages);
   const [typingId, setTypingId] = useState<string | null>(null);
-  const [sourcesCollapsed, setSourcesCollapsed] = useState(false);
   const [citationsCollapsed, setCitationsCollapsed] = useState(false);
   const questionRef = useRef<HTMLTextAreaElement>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
@@ -549,13 +546,9 @@ export function KnowledgeChat({
 
   const selectedCount = selectedIds.size;
 
-  const gridCols = sourcesCollapsed
-    ? citationsCollapsed
-      ? "xl:grid-cols-[3.25rem_minmax(0,1fr)_3.25rem]"
-      : "xl:grid-cols-[3.25rem_minmax(0,1fr)_1fr]"
-    : citationsCollapsed
-      ? "xl:grid-cols-[1fr_minmax(0,2fr)_3.25rem]"
-      : "xl:grid-cols-[1fr_2fr_1fr]";
+  const gridCols = citationsCollapsed
+    ? "xl:grid-cols-[1fr_minmax(0,2fr)_3.25rem]"
+    : "xl:grid-cols-[1fr_2fr_1fr]";
 
   return (
     <div
@@ -565,112 +558,84 @@ export function KnowledgeChat({
     >
       {/* Column 1 - Sources */}
       <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface xl:h-full">
-        {sourcesCollapsed ? (
-          <div className="flex h-full flex-col items-center justify-end p-2">
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+          <h2 className="text-base font-medium">Sources</h2>
+          <AddSourceButton missionId={missionId} />
+        </div>
+
+        <div className="flex items-center justify-between gap-2 px-4 py-2 text-xs">
+          <p className="text-muted">{selectedCount} selected</p>
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setSourcesCollapsed(false)}
-              aria-label="Expand sources"
-              title="Expand sources"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:bg-hover hover:text-foreground"
+              onClick={selectAll}
+              className="text-muted hover:text-foreground"
             >
-              <PanelLeftOpen className="h-4 w-4" aria-hidden />
+              All
+            </button>
+            <button
+              type="button"
+              onClick={selectNone}
+              className="text-muted hover:text-foreground"
+            >
+              None
             </button>
           </div>
+        </div>
+
+        {sources.length === 0 ? (
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+            <Globe className="h-8 w-8 text-muted" aria-hidden />
+            <div className="max-w-[16rem] space-y-1">
+              <p className="text-sm font-medium text-foreground">
+                Build your knowledge foundation.
+              </p>
+              <p className="text-sm text-muted">
+                Add sources to help your AI understand your business,
+                market, and expertise.
+              </p>
+            </div>
+            <AddSourceButton variant="pill" missionId={missionId} />
+          </div>
         ) : (
-          <>
-            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <h2 className="text-base font-medium">Sources</h2>
-              <AddSourceButton missionId={missionId} />
-            </div>
-
-            <div className="flex items-center justify-between gap-2 px-4 py-2 text-xs">
-              <p className="text-muted">{selectedCount} selected</p>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={selectAll}
-                  className="text-muted hover:text-foreground"
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  onClick={selectNone}
-                  className="text-muted hover:text-foreground"
-                >
-                  None
-                </button>
-              </div>
-            </div>
-
-            {sources.length === 0 ? (
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-                <Globe className="h-8 w-8 text-muted" aria-hidden />
-                <div className="max-w-[16rem] space-y-1">
-                  <p className="text-sm font-medium text-foreground">
-                    Build your knowledge foundation.
-                  </p>
-                  <p className="text-sm text-muted">
-                    Add sources to help your AI understand your business,
-                    market, and expertise.
-                  </p>
-                </div>
-                <AddSourceButton variant="pill" missionId={missionId} />
-              </div>
-            ) : (
-              <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
-                {sources.map((s) => {
-                  const checked = selectedIds.has(s.id);
-                  return (
-                    <li key={s.id} className="group">
-                      <div className="flex items-start gap-2 rounded-md p-2 hover:bg-hover">
-                        <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2">
-                          <SourceTypeIcon
-                            sourceType={s.sourceType}
-                            url={s.url}
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-medium text-foreground">
-                              {sourceDisplayTitle(s.title, s.sourceType)}
-                            </span>
-                            <span className="mt-0.5 block truncate text-xs text-muted">
-                              {sourceMeta(s)}
-                            </span>
-                          </span>
-                        </label>
-                        <SourceRowActions
-                          sourceId={s.id}
-                          title={s.title}
-                          sourceType={s.sourceType}
-                          url={s.url}
-                          missionId={missionId}
-                        />
-                        <input
-                          type="checkbox"
-                          className="mt-0.5 size-[18px] shrink-0 rounded-[6px] accent-accent"
-                          checked={checked}
-                          onChange={() => toggleSource(s.id)}
-                        />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-
-            <div className="flex shrink-0 justify-end p-2">
-              <button
-                type="button"
-                onClick={() => setSourcesCollapsed(true)}
-                aria-label="Collapse sources"
-                title="Collapse sources"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:bg-hover hover:text-foreground"
-              >
-                <PanelLeftClose className="h-4 w-4" aria-hidden />
-              </button>
-            </div>
-          </>
+          <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
+            {sources.map((s) => {
+              const checked = selectedIds.has(s.id);
+              return (
+                <li key={s.id} className="group">
+                  <div className="flex items-start gap-2 rounded-md p-2 hover:bg-hover">
+                    <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2">
+                      <SourceTypeIcon
+                        sourceType={s.sourceType}
+                        url={s.url}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium text-foreground">
+                          {sourceDisplayTitle(s.title, s.sourceType)}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-muted">
+                          {sourceMeta(s)}
+                        </span>
+                      </span>
+                    </label>
+                    <SourceRowActions
+                      sourceId={s.id}
+                      title={s.title}
+                      sourceType={s.sourceType}
+                      url={s.url}
+                      missionId={missionId}
+                    />
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 size-[18px] shrink-0 rounded-[6px] accent-accent"
+                      checked={checked}
+                      onChange={() => toggleSource(s.id)}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </aside>
 
@@ -805,8 +770,17 @@ export function KnowledgeChat({
           </div>
         ) : (
           <>
-            <div className="border-b border-border px-4 py-3">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
               <h2 className="text-base font-medium">Citations</h2>
+              <button
+                type="button"
+                onClick={() => setCitationsCollapsed(true)}
+                aria-label="Collapse citations"
+                title="Collapse citations"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:bg-hover hover:text-foreground"
+              >
+                <PanelRightClose className="h-4 w-4" aria-hidden />
+              </button>
             </div>
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
               {citedSources.length === 0 ? (
@@ -846,17 +820,6 @@ export function KnowledgeChat({
                   ))}
                 </ul>
               )}
-            </div>
-            <div className="flex shrink-0 justify-end p-2">
-              <button
-                type="button"
-                onClick={() => setCitationsCollapsed(true)}
-                aria-label="Collapse citations"
-                title="Collapse citations"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:bg-hover hover:text-foreground"
-              >
-                <PanelRightClose className="h-4 w-4" aria-hidden />
-              </button>
             </div>
           </>
         )}

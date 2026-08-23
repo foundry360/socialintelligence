@@ -4,6 +4,7 @@ import { MissionsDashboard } from "@/components/missions-dashboard";
 import { requireWorkspaceContext } from "@/lib/auth/workspace";
 import { createClient } from "@/lib/db/server";
 import { isSupabaseConfigured } from "@/lib/db/supabase";
+import { listTenantMembers } from "@/lib/tenancy/team";
 import type { MissionRow } from "@/lib/workspace/missions";
 
 export default async function WorkspaceMissionsPage() {
@@ -19,13 +20,19 @@ export default async function WorkspaceMissionsPage() {
   const ctx = await requireWorkspaceContext();
   const supabase = await createClient();
 
-  const { data: missionRows } = await supabase
-    .from("missions")
-    .select("id, title, description, created_at, updated_at, sort_order, created_by")
-    .eq("tenant_id", ctx.tenantId)
-    .is("deleted_at", null)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
+  const [missionRows, members] = await Promise.all([
+    supabase
+      .from("missions")
+      .select(
+        "id, title, description, created_at, updated_at, sort_order, created_by, project_lead_id",
+      )
+      .eq("tenant_id", ctx.tenantId)
+      .is("deleted_at", null)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true })
+      .then((result) => result.data),
+    listTenantMembers(ctx.tenantId),
+  ]);
 
   const missionIds = (missionRows ?? []).map((m) => m.id);
   const sourceStats = new Map<string, number>();
@@ -54,6 +61,7 @@ export default async function WorkspaceMissionsPage() {
     source_count: sourceStats.get(m.id) ?? 0,
     sort_order: m.sort_order ?? 0,
     created_by: m.created_by ?? null,
+    project_lead_id: m.project_lead_id ?? null,
   }));
 
   return (
@@ -71,6 +79,7 @@ export default async function WorkspaceMissionsPage() {
         <MissionsDashboard
           missions={missions}
           currentUserId={ctx.user.id}
+          tenantMembers={members}
         />
       </WorkspacePageWide>
     </WorkspaceShell>

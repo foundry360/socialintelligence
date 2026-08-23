@@ -14,6 +14,14 @@ import {
 } from "lucide-react";
 import { ExpandableSearch } from "@/components/expandable-search";
 import {
+  SortableTableHeader,
+  compareDates,
+  compareNumbers,
+  compareStrings,
+  toggleSortColumn,
+  type SortDirection,
+} from "@/components/sortable-table-header";
+import {
   createMission,
   removeMission,
   reorderMissions,
@@ -25,6 +33,8 @@ import {
   reorderMissionIds,
   type MissionRow,
 } from "@/lib/workspace/missions";
+import type { TeamMember } from "@/lib/tenancy/team-shared";
+import { TableSeeMore, useTablePagination } from "@/components/table-see-more";
 
 type ViewMode = "grid" | "list";
 type SortMode = "custom" | "recent" | "title";
@@ -36,13 +46,16 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
 ];
 
 type ProjectScope = "all" | "mine";
+type ProjectTableSortColumn = "title" | "updated_at" | "source_count";
 
 export function MissionsDashboard({
   missions,
   currentUserId,
+  tenantMembers,
 }: {
   missions: MissionRow[];
   currentUserId: string;
+  tenantMembers: TeamMember[];
 }) {
   const [view, setView] = useState<ViewMode>("grid");
   const [sort, setSort] = useState<SortMode>("custom");
@@ -50,6 +63,11 @@ export function MissionsDashboard({
   const [query, setQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [renameMission, setRenameMission] = useState<MissionRow | null>(null);
+  const [deleteMission, setDeleteMission] = useState<MissionRow | null>(null);
+  const [tableSortColumn, setTableSortColumn] =
+    useState<ProjectTableSortColumn>("updated_at");
+  const [tableSortDirection, setTableSortDirection] =
+    useState<SortDirection>("desc");
   const [pending, startTransition] = useTransition();
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [customOrder, setCustomOrder] = useState<string[]>([]);
@@ -82,7 +100,7 @@ export function MissionsDashboard({
     scope === "all" &&
     query.trim().length === 0;
 
-  const filtered = useMemo(() => {
+  const queriedRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     let rows = customOrder
       .map((id) => missionById.get(id))
@@ -96,22 +114,62 @@ export function MissionsDashboard({
       );
     }
 
+    return rows;
+  }, [customOrder, missionById, query]);
+
+  const filtered = useMemo(() => {
+    if (view === "list") {
+      return [...queriedRows].sort((a, b) => {
+        let result = 0;
+        switch (tableSortColumn) {
+          case "title":
+            result = compareStrings(a.title, b.title);
+            break;
+          case "updated_at":
+            result = compareDates(a.updated_at, b.updated_at);
+            break;
+          case "source_count":
+            result = compareNumbers(a.source_count, b.source_count);
+            break;
+        }
+        return tableSortDirection === "asc" ? result : -result;
+      });
+    }
+
     if (sort === "title") {
-      return [...rows].sort((a, b) => a.title.localeCompare(b.title));
+      return [...queriedRows].sort((a, b) => a.title.localeCompare(b.title));
     }
     if (sort === "recent") {
-      return [...rows].sort(
+      return [...queriedRows].sort(
         (a, b) =>
           new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
       );
     }
-    return rows;
-  }, [customOrder, missionById, query, sort]);
+    return queriedRows;
+  }, [queriedRows, view, sort, tableSortColumn, tableSortDirection]);
 
-  function onDelete(id: string) {
-    if (!confirm("Delete this project and its chat history?")) return;
+  function onSortTableColumn(column: ProjectTableSortColumn) {
+    const next = toggleSortColumn(
+      tableSortColumn,
+      column,
+      tableSortDirection,
+    );
+    setTableSortColumn(next.column);
+    setTableSortDirection(next.direction);
+  }
+
+  const listPagination = useTablePagination(
+    filtered.length,
+    `${view}:${tableSortColumn}:${tableSortDirection}:${scope}:${query}:${filtered.map((mission) => mission.id).join(",")}`,
+  );
+  const visibleListMissions = filtered.slice(0, listPagination.visibleCount);
+
+  function onConfirmDelete() {
+    if (!deleteMission) return;
+    const id = deleteMission.id;
     startTransition(async () => {
       await removeMission(id);
+      setDeleteMission(null);
       setMenuOpenId(null);
     });
   }
@@ -194,7 +252,9 @@ export function MissionsDashboard({
             </button>
           </div>
 
-          <ProjectSortMenu value={sort} onChange={setSort} />
+          {view === "grid" ? (
+            <ProjectSortMenu value={sort} onChange={setSort} />
+          ) : null}
 
           <button
             type="button"
@@ -252,7 +312,10 @@ export function MissionsDashboard({
                 setMenuOpenId((id) => (id === mission.id ? null : mission.id))
               }
               onMenuClose={() => setMenuOpenId(null)}
-              onDelete={() => onDelete(mission.id)}
+              onDelete={() => {
+                setMenuOpenId(null);
+                setDeleteMission(mission);
+              }}
               onRename={() => {
                 setMenuOpenId(null);
                 setRenameMission(mission);
@@ -262,16 +325,35 @@ export function MissionsDashboard({
           ))}
         </div>
       ) : (
-        <div className="mt-6 overflow-hidden rounded-lg border border-border bg-surface">
+        <div className="mt-6 flex flex-col overflow-hidden rounded-lg border border-border bg-surface">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-border bg-background/50 text-xs uppercase tracking-wide text-muted">
+            <thead className="border-b border-border bg-background/50 text-xs uppercase tracking-wide">
               <tr>
-                <th className="px-4 py-3 font-medium">Project</th>
-                <th className="hidden px-4 py-3 font-medium md:table-cell">
-                  Updated
-                </th>
-                <th className="px-4 py-3 font-medium">Sources</th>
-                <th className="px-4 py-3 font-medium" aria-label="Actions" />
+                <SortableTableHeader
+                  label="Project"
+                  active={tableSortColumn === "title"}
+                  direction={tableSortDirection}
+                  onSort={() => onSortTableColumn("title")}
+                  className="px-4 py-3 text-xs uppercase tracking-wide"
+                />
+                <SortableTableHeader
+                  label="Updated"
+                  active={tableSortColumn === "updated_at"}
+                  direction={tableSortDirection}
+                  onSort={() => onSortTableColumn("updated_at")}
+                  className="hidden px-4 py-3 text-xs uppercase tracking-wide md:table-cell"
+                />
+                <SortableTableHeader
+                  label="Sources"
+                  active={tableSortColumn === "source_count"}
+                  direction={tableSortDirection}
+                  onSort={() => onSortTableColumn("source_count")}
+                  className="px-4 py-3 text-xs uppercase tracking-wide"
+                />
+                <th
+                  className="px-4 py-3 text-right text-xs font-medium text-muted"
+                  aria-label="Actions"
+                />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -284,7 +366,7 @@ export function MissionsDashboard({
                   </td>
                 </tr>
               ) : (
-                filtered.map((mission) => (
+                visibleListMissions.map((mission) => (
                     <tr key={mission.id} className="group hover:bg-hover/40">
                       <td className="px-4 py-3">
                         <Link
@@ -319,7 +401,10 @@ export function MissionsDashboard({
                             setMenuOpenId(null);
                             setRenameMission(mission);
                           }}
-                          onDelete={() => onDelete(mission.id)}
+                          onDelete={() => {
+                setMenuOpenId(null);
+                setDeleteMission(mission);
+              }}
                           pending={pending}
                         />
                       </td>
@@ -328,16 +413,31 @@ export function MissionsDashboard({
               )}
             </tbody>
           </table>
+          {listPagination.hasMore ? (
+            <TableSeeMore onShowMore={listPagination.showMore} />
+          ) : null}
         </div>
       )}
 
       {showCreate ? (
-        <CreateMissionModal onClose={() => setShowCreate(false)} />
+        <CreateMissionModal
+          onClose={() => setShowCreate(false)}
+          tenantMembers={tenantMembers}
+          defaultLeadId={currentUserId}
+        />
       ) : null}
       {renameMission ? (
         <RenameMissionModal
           mission={renameMission}
           onClose={() => setRenameMission(null)}
+        />
+      ) : null}
+      {deleteMission ? (
+        <DeleteMissionModal
+          mission={deleteMission}
+          pending={pending}
+          onClose={() => setDeleteMission(null)}
+          onConfirm={onConfirmDelete}
         />
       ) : null}
     </div>
@@ -626,6 +726,80 @@ function ProjectSortMenu({
   );
 }
 
+function DeleteMissionModal({
+  mission,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  mission: MissionRow;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const [confirmation, setConfirmation] = useState("");
+  const canDelete = confirmation === "DELETE";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-xl">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Delete {mission.title}?</h2>
+            <p className="mt-2 text-sm text-muted">
+              This will permanently delete the project and its associated sources,
+              insights, and content. This action cannot be undone.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-md p-1 text-muted hover:bg-hover hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-6">
+          <label htmlFor="delete-mission-confirmation" className="text-sm font-medium">
+            Type DELETE to confirm
+          </label>
+          <input
+            id="delete-mission-confirmation"
+            type="text"
+            value={confirmation}
+            onChange={(event) => setConfirmation(event.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="DELETE"
+            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={pending}
+            className="rounded-md px-4 py-2 text-sm text-muted hover:text-foreground disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={pending || !canDelete}
+            className="rounded-md bg-danger px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          >
+            {pending ? "Deleting…" : "Delete project"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RenameMissionModal({
   mission,
   onClose,
@@ -719,8 +893,17 @@ function RenameMissionModal({
   );
 }
 
-function CreateMissionModal({ onClose }: { onClose: () => void }) {
+function CreateMissionModal({
+  onClose,
+  tenantMembers,
+  defaultLeadId,
+}: {
+  onClose: () => void;
+  tenantMembers: TeamMember[];
+  defaultLeadId: string;
+}) {
   const [description, setDescription] = useState("");
+  const [projectLeadId, setProjectLeadId] = useState(defaultLeadId);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -775,6 +958,25 @@ function CreateMissionModal({ onClose }: { onClose: () => void }) {
               placeholder="Short summary of what this project covers"
               className="mt-1 w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
             />
+          </div>
+          <div>
+            <label htmlFor="mission-project-lead" className="text-sm font-medium">
+              Assigned
+            </label>
+            <select
+              id="mission-project-lead"
+              name="project_lead_id"
+              required
+              value={projectLeadId}
+              onChange={(event) => setProjectLeadId(event.target.value)}
+              className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+            >
+              {tenantMembers.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.email}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button

@@ -1,4 +1,4 @@
-/** Future signal collector contract (not implemented in MVP). */
+/** @deprecated Use lib/signals/ingest/run-ingest.ts for RSS collection. */
 export interface SignalCollector {
   readonly id: string;
   readonly sourceType: string;

@@ -53,3 +53,18 @@ export class InMemoryIntelligenceLayer implements IntelligenceLayer {
 
 export type { EditorialRules, IntelligenceLayer } from "@/lib/intelligence/types";
 export { formatTenantKnowledgeBlock } from "@/lib/intelligence/types";
+export {
+  buildTenantContextBundle,
+  buildProjectContextBundle,
+  clearContextBundleCache,
+  invalidateTenantContextBundle,
+  invalidateProjectContextBundle,
+  type TenantContextBundle,
+  type ProjectContextBundle,
+} from "@/lib/intelligence/context-bundle";
+export {
+  formatApprovedBaselineSummary,
+  formatProjectMissionFocus,
+  formatWatchProfilesSummary,
+  mergeTenantKnowledgeForLlm,
+} from "@/lib/intelligence/context-bundle-format";

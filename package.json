@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test lib/signals/*.test.ts",
+    "test": "node --experimental-strip-types --test lib/signals/*.test.ts lib/intelligence/*.test.ts",
     "seed:baseline": "node scripts/seed-baseline.mjs"
   },
   "dependencies": {

@@ -3,10 +3,11 @@ import {
   getSessionUser,
   listMembershipsForUser,
 } from "@/lib/auth/session";
+import { retrieveEvidenceChunks } from "@/lib/knowledge/context";
 import {
-  buildStructuredKnowledgeText,
-  retrieveEvidenceChunks,
-} from "@/lib/knowledge/context";
+  buildProjectContextBundle,
+  buildTenantContextBundle,
+} from "@/lib/intelligence/context-bundle";
 import {
   extractCitationNumbers,
   toPlainProse,
@@ -21,7 +22,7 @@ const CHAT_SYSTEM = [
   "You are in an ongoing conversation. Use prior turns for continuity (follow-ups, clarifications, 'that', 'it', 'them').",
   "Ground answers ONLY in the ACCEPTED EVIDENCE SOURCES provided for this turn (the user's selected sources).",
   "Do not rely on sources that are not in the evidence list.",
-  "Structured tenant knowledge is supporting context: company profile, industries & markets, capabilities, personas, questions & conversations (market questions by persona, topic, buying stage, priority), points of view, proof & evidence (case studies, outcomes, certifications, awards, partnerships, experience, statistics, research, frameworks, testimonials), and terminology.",
+  "Structured tenant knowledge is supporting context: company profile, industries & markets, capabilities, personas, questions & conversations (market questions by persona, topic, buying stage, priority), points of view, proof & evidence (case studies, outcomes, certifications, awards, partnerships, experience, statistics, research, frameworks, testimonials), terminology, and an approved authority baseline when present.",
   "Use proof & evidence, industries/markets, and market questions when they strengthen a claim, but still cite uploaded/URL evidence with [n] when the claim comes from selected sources.",
   "When the user asks about 'our website' / homepage / site messaging, use evidence items marked kind=website if present.",
   "If website evidence is present, summarize from that evidence. Do not invent a disclaimer that website content is missing.",
@@ -136,28 +137,15 @@ export async function POST(request: Request) {
   let missionFocus = "";
   if (missionId) {
     const supabase = await createClient();
-    const { data: mission } = await supabase
-      .from("missions")
-      .select("id, title, description")
-      .eq("id", missionId)
-      .eq("tenant_id", tenantId)
-      .is("deleted_at", null)
-      .maybeSingle();
-
-    if (!mission) {
+    const projectBundle = await buildProjectContextBundle(missionId, tenantId);
+    if (!projectBundle) {
       return NextResponse.json(
         { answer: "Project not found.", citations: [], evidenceCount: 0 },
         { status: 404 },
       );
     }
 
-    missionFocus = [
-      "MISSION FOCUS (stay on this topic while using tenant knowledge and evidence):",
-      `Title: ${mission.title}`,
-      mission.description?.trim()
-        ? `Focus: ${mission.description.trim()}`
-        : "Focus: Use the conversation to explore this topic in depth.",
-    ].join("\n");
+    missionFocus = projectBundle.missionFocus;
 
     const { data: missionSourceRows } = await supabase
       .from("mission_sources")
@@ -192,12 +180,14 @@ export async function POST(request: Request) {
   ].join("\n");
 
   let chunks: Awaited<ReturnType<typeof retrieveEvidenceChunks>> = [];
-  let structured = "";
+  let tenantKnowledge = "";
   try {
-    [structured, chunks] = await Promise.all([
-      buildStructuredKnowledgeText(tenantId),
+    const [tenantBundle, retrievedChunks] = await Promise.all([
+      buildTenantContextBundle(tenantId),
       retrieveEvidenceChunks(tenantId, retrievalQuery, 12, { sourceIds }),
     ]);
+    tenantKnowledge = tenantBundle.tenantKnowledge;
+    chunks = retrievedChunks;
   } catch (e) {
     return NextResponse.json({
       answer:
@@ -253,14 +243,14 @@ export async function POST(request: Request) {
       {
         channels: {
           systemInstructions,
-          tenantKnowledge: structured || "(No structured profile yet.)",
+          tenantKnowledge,
           acceptedEvidence: evidenceBlock,
         },
         messages: conversation,
         metadata: {
           tenantId,
           promptName: "knowledge-chat",
-          promptVersion: "12",
+          promptVersion: "13",
           purpose: "grounded_workspace_chat",
         },
       },

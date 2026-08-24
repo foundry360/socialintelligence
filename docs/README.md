@@ -18,7 +18,7 @@ Social Intelligence is a multi-tenant **Thought Leadership Intelligence OS**. Ko
 | [KNOWLEDGE_ARCHITECTURE.md](./KNOWLEDGE_ARCHITECTURE.md) | Structured + vector knowledge |
 | [POV_ENGINE.md](./POV_ENGINE.md) | Points of view model |
 | [SIGNALING_ARCHITECTURE.md](./SIGNALING_ARCHITECTURE.md) | Signaling system design |
-| [SIGNALING_PHASE1_PROPOSAL.md](./SIGNALING_PHASE1_PROPOSAL.md) | **Phase 1 schema proposal (awaiting approval)** |
+| [SIGNALING_PHASE1_PROPOSAL.md](./SIGNALING_PHASE1_PROPOSAL.md) | Phase 1 schema (implemented) |
 | [SIGNAL_ENGINE.md](./SIGNAL_ENGINE.md) | Signal engine summary |
 | [CONTENT_ENGINE.md](./CONTENT_ENGINE.md) | Opportunities, packages, generation |
 | [GEO_AEO_STRATEGY.md](./GEO_AEO_STRATEGY.md) | Authority for search & AI answers |

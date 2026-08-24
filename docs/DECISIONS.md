@@ -4,6 +4,34 @@ Format: short ADR entries. Newest first.
 
 ---
 
+## ADR-011 - LLM tiering and context caching
+
+**Status:** Accepted  
+**Date:** 2026-08-24
+
+**Decision:** Use a **four-tier LLM usage model** and **cached context bundles** so stable tenant and project context is not resent on every model call.
+
+| Tier | Mechanism | Use for |
+|------|-----------|---------|
+| **0 - Deterministic** | Code, rules, DB, embeddings | RSS ingest, dedup, clustering, evidence retrieval, inbox filters |
+| **1 - Local (optional)** | `LocalModelProvider` / Ollama when implemented | High-volume pre-filter, tagging, metadata (phase-gated; not MVP) |
+| **2 - Cached context** | `ContextBundle` with version-key invalidation | Structured knowledge, approved baseline, project definition, watch profiles |
+| **3 - Claude** | `ClaudeProvider` via `LLMProvider` | Signal qualification, Insights chat, baseline generation, messaging/content |
+
+**Rationale:** Insights chat currently rebuilds and resends full tenant knowledge on every turn. Signal qualification (Phase 3) would repeat the same mistake at batch scale. Baseline, system prompts, project definitions, and watch profiles change infrequently; they must not be treated as uncached input on every request. Claude credits should fund interpretation and reasoning, not static context re-transmission.
+
+**Consequences:**
+
+- Add `lib/intelligence/context-bundle.ts` (or equivalent) before Phase 3 qualification ships.
+- Cache keys invalidate on: knowledge edits, baseline approve/regenerate, mission update, watch profile update.
+- Wire bundles into chat and qualification; only query-dependent evidence and per-candidate signal sources vary per call.
+- Optional: Anthropic prompt caching on stable prefixes in `ClaudeProvider`.
+- `LocalModelProvider` remains a stub until ingest metrics justify a pre-qualification gate.
+- Update `docs/LLM_ARCHITECTURE.md` with tier table and caching rules.
+- Signaling ingest/cluster (Phase 2) stays Tier 0; no LLM in the collector path.
+
+---
+
 ## ADR-010 - Automated signaling before messaging plan
 
 **Status:** Accepted  

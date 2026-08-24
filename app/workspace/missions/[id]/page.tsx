@@ -1,7 +1,4 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { WorkspaceShell } from "@/components/workspace-shell";
 import { requireWorkspaceContext } from "@/lib/auth/workspace";
 import { createClient } from "@/lib/db/server";
 import {
@@ -82,38 +79,12 @@ export default async function MissionChatPage({
   }));
 
   return (
-    <WorkspaceShell
-      tenantName={ctx.tenantName}
-      email={ctx.user.email}
-      role={ctx.role}
-      avatarUrl={
-        typeof ctx.user.user_metadata?.avatar_url === "string"
-          ? ctx.user.user_metadata.avatar_url
-          : null
-      }
-    >
-      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex shrink-0 items-center gap-3 px-4 pt-2 pb-[10px] sm:px-6">
-          <Link
-            href="/workspace"
-            className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-            Projects
-          </Link>
-          <span className="text-muted" aria-hidden>
-            /
-          </span>
-          <p className="truncate text-sm font-medium">{mission.title}</p>
-        </div>
-        <KnowledgeChat
-          sources={sources}
-          missionId={mission.id}
-          missionTitle={mission.title}
-          missionDescription={mission.description}
-          initialMessages={initialMessages}
-        />
-      </div>
-    </WorkspaceShell>
+    <KnowledgeChat
+      sources={sources}
+      missionId={mission.id}
+      missionTitle={mission.title}
+      missionDescription={mission.description}
+      initialMessages={initialMessages}
+    />
   );
 }

@@ -558,7 +558,7 @@ export function KnowledgeChat({
     >
       {/* Column 1 - Sources */}
       <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface xl:h-full">
-        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
           <h2 className="text-base font-medium">Sources</h2>
           <AddSourceButton missionId={missionId} />
         </div>
@@ -641,7 +641,7 @@ export function KnowledgeChat({
 
       {/* Column 2 - Thread + composer */}
       <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface xl:h-full">
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
           <h2 className="text-base font-medium">{missionTitle ?? "Chat"}</h2>
           {messages.length > 0 && !missionId ? (
             <button
@@ -757,7 +757,7 @@ export function KnowledgeChat({
       {/* Column 3 - Citations for latest answer */}
       <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface xl:h-full">
         {citationsCollapsed ? (
-          <div className="flex h-full flex-col items-center justify-end p-2">
+          <div className="flex h-12 shrink-0 items-center justify-end border-b border-border px-2">
             <button
               type="button"
               onClick={() => setCitationsCollapsed(false)}
@@ -770,14 +770,14 @@ export function KnowledgeChat({
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+            <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
               <h2 className="text-base font-medium">Citations</h2>
               <button
                 type="button"
                 onClick={() => setCitationsCollapsed(true)}
                 aria-label="Collapse citations"
                 title="Collapse citations"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:bg-hover hover:text-foreground"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted hover:bg-hover hover:text-foreground"
               >
                 <PanelRightClose className="h-4 w-4" aria-hidden />
               </button>

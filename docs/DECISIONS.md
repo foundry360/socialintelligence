@@ -4,6 +4,25 @@ Format: short ADR entries. Newest first.
 
 ---
 
+## ADR-010 - Automated signaling before messaging plan
+
+**Status:** Accepted  
+**Date:** 2026-08-23
+
+**Decision:** Build **automated Signal Intelligence** (watch profiles, RSS ingest, qualification, project Signal Inbox) as the next major capability. Signals are **project-scoped** and ingested on a schedule, not entered manually. Messaging Plan generation follows qualified market signals. Content generation follows an approved messaging plan.
+
+**Rationale:** A signaling intelligence layer that requires manual paste is not signaling. Market-aligned messaging requires external market intelligence. The product sequence is: organizational authority (knowledge + baseline) → automated market signals → messaging plan → content ops.
+
+**Consequences:**
+
+- Canonical architecture: `docs/SIGNALING_ARCHITECTURE.md`
+- **Three-tier signal model:** Source → Candidate Signal → Qualified Signal (RSS items are sources, never signals)
+- Supersedes manual-first MVP language in `docs/SIGNAL_ENGINE.md` and `AGENTS.md` §12 (when accepted)
+- New tables: `signal_sources`, `candidate_signals`, `qualified_signals`, `watch_profiles`, etc.
+- Future: N qualified signals → emerging pattern (schema hook documented, not MVP)
+
+---
+
 ## ADR-009 - Tenant onboarding creates org + workspace
 
 **Status:** Accepted  
